@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistema de Picking - Confirmación de Pedidos</title>
+  <title>Sistema de Picking - Por Cliente</title>
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
@@ -83,48 +83,48 @@
       width: 100%; border: none; outline: none; font-size: 0.95em; background: transparent; color: var(--text-dark); font-weight: 500;
     }
 
-    .chips-container { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 16px; scrollbar-width: none; }
-    .chips-container::-webkit-scrollbar { display: none; }
+    .client-list { display: flex; flex-direction: column; gap: 14px; }
 
-    .chip {
-      background: var(--card-bg); color: var(--text-muted); padding: 9px 18px; border-radius: 20px; font-size: 0.8em;
-      font-weight: 800; white-space: nowrap; cursor: pointer; border: 1px solid #e2e8f0; transition: all 0.2s ease;
-    }
-    .chip.active { background: var(--primary-dark); color: #ffffff; border-color: var(--primary-dark); }
-
-    .product-list { display: flex; flex-direction: column; gap: 12px; }
-
-    .product-card {
+    .client-card {
       background: var(--card-bg); border-radius: 20px; padding: 14px 16px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); border: 1px solid #f1f5f9;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); border: 1px solid #e2e8f0;
     }
-    .product-card.completo { background-color: var(--status-completed-bg) !important; border: 1.5px solid var(--status-completed-border); }
+    .client-card.completo { background-color: var(--status-completed-bg) !important; border: 1.5px solid var(--status-completed-border); }
 
     .card-main { display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
     .card-left { display: flex; align-items: center; gap: 12px; flex: 1; }
     .icon-circle { width: 42px; height: 42px; border-radius: 12px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 1.1em; flex-shrink: 0; }
-    .product-name { font-weight: 700; font-size: 0.95em; color: var(--text-dark); text-transform: uppercase; }
+    .client-name { font-weight: 800; font-size: 0.95em; color: var(--text-dark); text-transform: uppercase; }
+    .client-sub { font-size: 0.75em; color: var(--text-muted); font-weight: 600; margin-top: 2px; }
+
+    .toggle-arrow { color: var(--text-muted); font-size: 0.8em; transition: transform 0.2s; }
+    .toggle-arrow.open { transform: rotate(180deg); }
+
+    .client-items-container { display: none; margin-top: 14px; padding-top: 12px; border-top: 1px solid #cbd5e1; flex-direction: column; gap: 12px; }
+    .client-items-container.active { display: flex; }
+
+    .item-subcard {
+      background: #f8fafc; border-radius: 14px; padding: 12px; border: 1px solid #cbd5e1;
+    }
+    .item-subcard.item-completo { background: #f0fdf4; border-color: #86efac; }
+
+    .item-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+    .item-title { font-weight: 700; font-size: 0.88em; color: var(--primary-dark); text-transform: uppercase; }
 
     .badge-tag { font-size: 0.65em; font-weight: 800; padding: 3px 8px; border-radius: 10px; text-transform: uppercase; display: inline-block; margin-left: 4px; color: white; }
     .badge-manojo { background-color: var(--badge-red); }
     .badge-observacion { background-color: var(--badge-yellow); color: #000; }
 
-    .toggle-arrow { color: var(--text-muted); font-size: 0.8em; transition: transform 0.2s; }
-    .toggle-arrow.open { transform: rotate(180deg); }
-
-    .product-details { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(0,0,0,0.06); }
-    .product-details.active { display: block; }
-
-    .detail-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.85em; }
+    .detail-row { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 0.8em; }
     .detail-label { color: var(--text-muted); font-weight: 600; }
     .detail-value { font-weight: 700; color: var(--text-dark); }
 
-    .stock-input-group { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
-    .stock-input-group input { width: 90px; padding: 9px; border: 1px solid #cbd5e1; border-radius: 10px; text-align: center; font-size: 0.9em; font-weight: 700; outline: none; }
+    .stock-input-group { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+    .stock-input-group input { width: 85px; padding: 7px; border: 1px solid #cbd5e1; border-radius: 8px; text-align: center; font-size: 0.85em; font-weight: 700; outline: none; }
 
-    .btn-save-stock { background: var(--accent-blue); color: white; border: none; padding: 9px 16px; border-radius: 10px; font-weight: 700; font-size: 0.85em; cursor: pointer; }
-    .checkboxes-wrapper { display: flex; gap: 16px; margin-top: 12px; }
-    .checkbox-action { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 0.85em; }
+    .btn-save-stock { background: var(--accent-blue); color: white; border: none; padding: 7px 14px; border-radius: 8px; font-weight: 700; font-size: 0.8em; cursor: pointer; }
+    .checkboxes-wrapper { display: flex; gap: 16px; margin-top: 8px; }
+    .checkbox-action { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 0.8em; }
 
     .fab-new-product {
       position: fixed; bottom: 20px; right: 20px; background: var(--brand-orange); color: white; border: none;
@@ -155,7 +155,7 @@
   <div class="header-brand">
     <div class="header-titles">
       <span class="company-name">SISTEMA DE PICKING</span>
-      <span class="header-title">CONFIRMACIÓN DE PEDIDO</span>
+      <span class="header-title">CONTROL POR CLIENTE</span>
     </div>
     <button class="btn-upload-excel" onclick="document.getElementById('fileExcel').click()">📄 CARGAR EXCEL</button>
     <input type="file" id="fileExcel" accept=".xlsx, .xls" style="display:none" onchange="procesarExcel(this)">
@@ -163,7 +163,7 @@
 
   <div class="progress-card">
     <div class="progress-text">
-      <span>PROGRESO DE PICKING</span>
+      <span>PROGRESO GLOBAL DE PICKING</span>
       <span id="progressStats">0 / 0 ÍTEMS</span>
     </div>
     <div class="progress-bar-bg">
@@ -173,16 +173,12 @@
 
   <div class="search-section">
     <div class="search-input-group">
-      <input type="text" id="txtBuscar" placeholder="🔍 Buscar producto, cliente, código o comprobante..." oninput="aplicarFiltros()">
+      <input type="text" id="txtBuscar" placeholder="🔍 Buscar por cliente, producto, código o comprobante..." oninput="aplicarFiltros()">
     </div>
   </div>
 
-  <div class="chips-container" id="chipsContainer">
-    <div class="chip active" onclick="seleccionarCategoria('', this)">TODAS</div>
-  </div>
-
-  <div class="product-list" id="listaProductos">
-    Cargando lista de picking...
+  <div class="client-list" id="listaClientes">
+    Cargando lista de clientes...
   </div>
 
   <button class="fab-new-product" onclick="abrirModalNuevoProducto()">+ AGREGAR ÍTEM</button>
@@ -192,16 +188,16 @@
     <div class="modal-card">
       <div style="font-weight:800; margin-bottom:12px;">AGREGAR ÍTEM MANUAL</div>
       <div class="form-group">
+        <label>Cliente (*):</label>
+        <input type="text" id="newCliente" placeholder="Ej. DAYHANA VARGAS">
+      </div>
+      <div class="form-group">
         <label>Producto (*):</label>
         <input type="text" id="newNombre" placeholder="Ej. CAPA FELPA JADE">
       </div>
       <div class="form-group">
         <label>Código Item:</label>
         <input type="text" id="newCodigo" placeholder="Ej. 9810906009515">
-      </div>
-      <div class="form-group">
-        <label>Cliente:</label>
-        <input type="text" id="newCliente" placeholder="Ej. DAYHANA VARGAS">
       </div>
       <div class="form-group">
         <label>Cant. Solicitada:</label>
@@ -232,18 +228,17 @@
     const URL_API = "https://script.google.com/macros/s/AKfycbzgfhVbc7d2r3SSjWVpeuTbSkFxAWpBgTnSw47Jnc9m-KEvpm2UADNT0ezcbUNubd9Y/exec"; 
 
     let productosGlobales = [];
-    let categoriaSeleccionada = "";
+    let clientesAgrupados = [];
     let accionPendiente = null;
 
     async function cargarDatos() {
       try {
         const res = await fetch(URL_API);
         productosGlobales = await res.json();
-        poblarCategorias(productosGlobales);
         actualizarBarraProgreso();
-        renderizarLista(productosGlobales);
+        agruparPorCliente(productosGlobales);
       } catch(e) {
-        document.getElementById('listaProductos').innerText = "Error cargando la orden de picking.";
+        document.getElementById('listaClientes').innerText = "Error cargando la orden de picking.";
       }
     }
 
@@ -257,101 +252,119 @@
       document.getElementById('progressBar').style.width = `${porcentaje}%`;
     }
 
-    function poblarCategorias(data) {
-      const container = document.getElementById('chipsContainer');
-      container.innerHTML = '<div class="chip active" onclick="seleccionarCategoria(\'\', this)">TODAS</div>';
+    function agruparPorCliente(data) {
+      const mapa = {};
 
-      const categorias = [...new Set(data.map(item => item.categoria ? item.categoria.toString().trim() : ""))];
-      categorias.sort().forEach(cat => {
-        if (cat !== "") {
-          container.innerHTML += `<div class="chip" onclick="seleccionarCategoria('${cat}', this)">${cat.toUpperCase()}</div>`;
+      data.forEach(item => {
+        const key = `${item.cliente || 'CLIENTE GENERAL'}_${item.comprobante || 'GENERAL'}`;
+        if (!mapa[key]) {
+          mapa[key] = {
+            cliente: item.cliente || 'CLIENTE GENERAL',
+            comprobante: item.comprobante || 'GENERAL',
+            items: []
+          };
         }
+        mapa[key].items.push(item);
       });
+
+      clientesAgrupados = Object.values(mapa);
+      renderizarListaClientes(clientesAgrupados);
     }
 
-    function seleccionarCategoria(cat, elemento) {
-      categoriaSeleccionada = cat;
-      document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-      elemento.classList.add('active');
-      aplicarFiltros();
-    }
-
-    function renderizarLista(data) {
-      const container = document.getElementById('listaProductos');
+    function renderizarListaClientes(grupos) {
+      const container = document.getElementById('listaClientes');
       container.innerHTML = '';
 
-      if (data.length === 0) {
-        container.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-muted);">Sin ítems cargados.</div>';
+      if (grupos.length === 0) {
+        container.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-muted);">Sin pedidos cargados.</div>';
         return;
       }
 
-      data.forEach(item => {
-        const verificadoEmpacado = item.manojo === true || item.manojo === "TRUE";
-        const tieneObservacion = item.observacion === true || item.observacion === "TRUE";
-        const esCompleto = item.estado === 'COMPLETO' || (item.cantPickeada !== "" && Number(item.cantPickeada) >= Number(item.cantSolicitada));
+      grupos.forEach((grupo, gIndex) => {
+        const totalItems = grupo.items.length;
+        const completados = grupo.items.filter(i => i.estado === 'COMPLETO' || Number(i.cantPickeada) >= Number(i.cantSolicitada)).length;
+        const clienteCompleto = totalItems > 0 && totalItems === completados;
 
         const div = document.createElement('div');
-        div.className = `product-card ${esCompleto ? 'completo' : ''}`;
-        div.id = `item-${item.fila}`;
+        div.className = `client-card ${clienteCompleto ? 'completo' : ''}`;
+        div.id = `client-card-${gIndex}`;
+
+        let htmlItems = '';
+        grupo.items.forEach(item => {
+          const verificadoEmpacado = item.manojo === true || item.manojo === "TRUE";
+          const tieneObservacion = item.observacion === true || item.observacion === "TRUE";
+          const esItemCompleto = item.estado === 'COMPLETO' || (item.cantPickeada !== "" && Number(item.cantPickeada) >= Number(item.cantSolicitada));
+
+          htmlItems += `
+            <div class="item-subcard ${esItemCompleto ? 'item-completo' : ''}" id="subcard-${item.fila}">
+              <div class="item-header">
+                <span class="item-title">${item.producto}</span>
+                <div>
+                  <span class="badge-tag badge-manojo" id="badge-manojo-${item.fila}" style="display: ${verificadoEmpacado ? 'inline-block' : 'none'};">EMPACADO</span>
+                  <span class="badge-tag badge-observacion" id="badge-obs-${item.fila}" style="display: ${tieneObservacion ? 'inline-block' : 'none'};">OBSERVACIÓN</span>
+                </div>
+              </div>
+              <div class="detail-row"><span class="detail-label">Código Item:</span><span class="detail-value">${item.codigo || '—'}</span></div>
+              <div class="detail-row"><span class="detail-label">Categoría:</span><span class="detail-value">${item.categoria || '—'}</span></div>
+              <div class="detail-row"><span class="detail-label">Solicitado:</span><span class="detail-value">${item.cantSolicitada} ${item.unidad || 'EA'}</span></div>
+              <div class="detail-row"><span class="detail-label">Faltante:</span><span class="detail-value" id="faltante-${item.fila}">${item.faltante !== undefined ? item.faltante : item.cantSolicitada}</span></div>
+
+              <div class="stock-input-group">
+                <span class="detail-label">Cant. Pickeada:</span>
+                <input type="number" id="input-pick-${item.fila}" value="${item.cantPickeada !== '' ? item.cantPickeada : ''}" placeholder="0">
+                <button class="btn-save-stock" onclick="pedirConfirmacionPicking(${item.fila}, '${item.producto}')">CONFIRMAR</button>
+              </div>
+
+              <div class="checkboxes-wrapper">
+                <div class="checkbox-action">
+                  <input type="checkbox" id="chk-${item.fila}" ${verificadoEmpacado ? 'checked' : ''} onclick="pedirConfirmacionEmpaque(this, ${item.fila}, '${item.producto}')">
+                  <span>EMPACADO</span>
+                </div>
+                <div class="checkbox-action">
+                  <input type="checkbox" id="chk-obs-${item.fila}" ${tieneObservacion ? 'checked' : ''} onclick="pedirConfirmacionObservacion(this, ${item.fila}, '${item.producto}')">
+                  <span>OBSERVACIÓN</span>
+                </div>
+              </div>
+            </div>
+          `;
+        });
 
         div.innerHTML = `
-          <div class="card-main" onclick="toggleAcordeon(${item.fila})">
+          <div class="card-main" onclick="toggleAcordeon(${gIndex})">
             <div class="card-left">
-              <div class="icon-circle">${esCompleto ? '✅' : '📦'}</div>
+              <div class="icon-circle">${clienteCompleto ? '✅' : '👤'}</div>
               <div>
-                <span class="product-name">${item.producto}</span>
-                <span class="badge-tag badge-manojo" id="badge-manojo-${item.fila}" style="display: ${verificadoEmpacado ? 'inline-block' : 'none'};">EMPACADO</span>
-                <span class="badge-tag badge-observacion" id="badge-obs-${item.fila}" style="display: ${tieneObservacion ? 'inline-block' : 'none'};">OBSERVACIÓN</span>
+                <div class="client-name">${grupo.cliente}</div>
+                <div class="client-sub">Comprobante: ${grupo.comprobante} | Progreso: ${completados}/${totalItems} ítems</div>
               </div>
             </div>
-            <div class="toggle-arrow" id="icon-${item.fila}">▼</div>
+            <div class="toggle-arrow" id="icon-group-${gIndex}">▼</div>
           </div>
 
-          <div class="product-details" id="details-${item.fila}">
-            <div class="detail-row"><span class="detail-label">Código Item:</span><span class="detail-value">${item.codigo || '—'}</span></div>
-            <div class="detail-row"><span class="detail-label">Cliente:</span><span class="detail-value">${item.cliente || '—'}</span></div>
-            <div class="detail-row"><span class="detail-label">Comprobante:</span><span class="detail-value">${item.comprobante || '—'}</span></div>
-            <div class="detail-row"><span class="detail-label">Solicitado:</span><span class="detail-value">${item.cantSolicitada} ${item.unidad || ''}</span></div>
-            <div class="detail-row"><span class="detail-label">Faltante:</span><span class="detail-value" id="faltante-${item.fila}">${item.faltante !== undefined ? item.faltante : item.cantSolicitada}</span></div>
-
-            <div class="stock-input-group">
-              <span class="detail-label">Cant. Pickeada:</span>
-              <input type="number" id="input-pick-${item.fila}" value="${item.cantPickeada !== '' ? item.cantPickeada : ''}" placeholder="0">
-              <button class="btn-save-stock" onclick="pedirConfirmacionPicking(${item.fila}, '${item.producto}')">CONFIRMAR</button>
-            </div>
-
-            <div class="checkboxes-wrapper">
-              <div class="checkbox-action">
-                <input type="checkbox" id="chk-${item.fila}" ${verificadoEmpacado ? 'checked' : ''} onclick="pedirConfirmacionEmpaque(this, ${item.fila}, '${item.producto}')">
-                <span>EMPACADO</span>
-              </div>
-              <div class="checkbox-action">
-                <input type="checkbox" id="chk-obs-${item.fila}" ${tieneObservacion ? 'checked' : ''} onclick="pedirConfirmacionObservacion(this, ${item.fila}, '${item.producto}')">
-                <span>OBSERVACIÓN</span>
-              </div>
-            </div>
+          <div class="client-items-container" id="items-group-${gIndex}">
+            ${htmlItems}
           </div>
         `;
         container.appendChild(div);
       });
     }
 
-    function toggleAcordeon(fila) {
-      document.getElementById(`details-${fila}`).classList.toggle('active');
-      document.getElementById(`icon-${fila}`).classList.toggle('open');
+    function toggleAcordeon(gIndex) {
+      document.getElementById(`items-group-${gIndex}`).classList.toggle('active');
+      document.getElementById(`icon-group-${gIndex}`).classList.toggle('open');
     }
 
     function aplicarFiltros() {
       const texto = document.getElementById('txtBuscar').value.toLowerCase().trim();
-      const filtrados = productosGlobales.filter(item => {
-        const coincideTexto = (item.producto && item.producto.toLowerCase().includes(texto)) || 
-                              (item.codigo && String(item.codigo).toLowerCase().includes(texto)) ||
-                              (item.cliente && item.cliente.toLowerCase().includes(texto)) ||
-                              (item.comprobante && String(item.comprobante).toLowerCase().includes(texto));
-        const coincideCategoria = categoriaSeleccionada === "" || (item.categoria && item.categoria.toString().trim() === categoriaSeleccionada);
-        return coincideTexto && coincideCategoria;
+      
+      const datosFiltrados = productosGlobales.filter(item => {
+        return (item.cliente && item.cliente.toLowerCase().includes(texto)) ||
+               (item.producto && item.producto.toLowerCase().includes(texto)) ||
+               (item.codigo && String(item.codigo).toLowerCase().includes(texto)) ||
+               (item.comprobante && String(item.comprobante).toLowerCase().includes(texto));
       });
-      renderizarLista(filtrados);
+
+      agruparPorCliente(datosFiltrados);
     }
 
     async function procesarExcel(input) {
@@ -409,12 +422,13 @@
             }
 
             if (data.estado === 'COMPLETO') {
-              document.getElementById(`item-${fila}`).classList.add('completo');
+              document.getElementById(`subcard-${fila}`).classList.add('item-completo');
             } else {
-              document.getElementById(`item-${fila}`).classList.remove('completo');
+              document.getElementById(`subcard-${fila}`).classList.remove('item-completo');
             }
 
             actualizarBarraProgreso();
+            agruparPorCliente(productosGlobales);
             mostrarToast("✓ PICKING GUARDADO");
           }
         }
@@ -449,7 +463,8 @@
 
     async function guardarNuevoProducto() {
       const producto = document.getElementById('newNombre').value.trim();
-      if (!producto) return alert("Ingresa el nombre del producto.");
+      const cliente = document.getElementById('newCliente').value.trim();
+      if (!producto || !cliente) return alert("Ingresa el cliente y el producto.");
       cerrarModalNuevo();
       await fetch(URL_API, {
         method: 'POST',
@@ -457,7 +472,7 @@
           accion: "AGREGAR_ITEM",
           codigo: document.getElementById('newCodigo').value.trim(),
           producto: producto,
-          cliente: document.getElementById('newCliente').value.trim(),
+          cliente: cliente,
           cantSolicitada: document.getElementById('newCant').value
         })
       });
