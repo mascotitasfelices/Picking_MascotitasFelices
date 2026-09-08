@@ -91,7 +91,7 @@
       border: 1px solid #cbd5e1;
       border-radius: 8px;
       padding: 4px 8px;
-      font-size: 0.9em;
+      font-size: 0.85em;
       outline: none;
       background: white;
       color: var(--text-dark);
@@ -219,13 +219,15 @@
       </div>
 
       <div class="filter-control-group">
-        <span>📅 Desde:</span>
+        <span>📅 Emisión:</span>
         <input type="date" id="filterFechaDesde" onchange="aplicarFiltros()">
+        <span>a</span>
+        <input type="date" id="filterFechaHasta" onchange="aplicarFiltros()">
       </div>
 
       <div class="filter-control-group">
-        <span>Hasta:</span>
-        <input type="date" id="filterFechaHasta" onchange="aplicarFiltros()">
+        <span>🚚 F. Próx. Despacho:</span>
+        <input type="date" id="filterFechaDespacho" onchange="aplicarFiltros()">
       </div>
 
       <button class="btn-clear-filters" onclick="limpiarFiltros()">🧹 Limpiar Filtros</button>
@@ -263,11 +265,21 @@
       return String(val || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
     }
 
-    function normalizarFecha(f) {
+    function normalizarFechaISO(f) {
       if (!f) return "";
       let str = String(f).trim();
       if (str.includes("T")) str = str.split("T")[0];
       return str;
+    }
+
+    function formatearDDMMAAAA(fISO) {
+      const iso = normalizarFechaISO(fISO);
+      if (!iso || !iso.includes("-")) return iso || "S/F";
+      const partes = iso.split("-");
+      if (partes.length === 3) {
+        return `${partes[2]}/${partes[1]}/${partes[0]}`;
+      }
+      return iso;
     }
 
     async function cargarDatos() {
@@ -277,7 +289,7 @@
         
         ultimaFechaGeneral = "";
         productosGlobales.forEach(item => {
-          const fStr = normalizarFecha(item.fecha);
+          const fStr = normalizarFechaISO(item.fecha);
           if (fStr > ultimaFechaGeneral) ultimaFechaGeneral = fStr;
 
           const keyGroup = normalizarKey(item.docCliente || item.cliente || 'GENERAL');
@@ -322,12 +334,13 @@
       const tagSeleccionada = document.getElementById('filterTag').value;
       const fechaDesde = document.getElementById('filterFechaDesde').value;
       const fechaHasta = document.getElementById('filterFechaHasta').value;
+      const fechaDespachoFiltro = document.getElementById('filterFechaDespacho').value;
       const autoFiltrarUltimoDia = document.getElementById('chkAutoFilter').checked;
 
       itemsFiltradosGlobal = productosGlobales.filter(item => {
         const keyGroup = normalizarKey(item.docCliente || item.cliente || 'GENERAL');
         const state = estadoEtiquetasClientes[keyGroup] || {};
-        const fechaItem = normalizarFecha(item.fecha);
+        const fechaItem = normalizarFechaISO(item.fecha);
 
         // 0. Filtro Automático Último Día / Pendientes
         if (autoFiltrarUltimoDia) {
@@ -351,12 +364,19 @@
           coincideTag = !!state[tagSeleccionada];
         }
 
-        // 3. Filtro Fechas
+        // 3. Filtro Fechas Emisión Comprobante
         let coincideFecha = true;
         if (fechaDesde && fechaItem) coincideFecha = coincideFecha && (fechaItem >= fechaDesde);
         if (fechaHasta && fechaItem) coincideFecha = coincideFecha && (fechaItem <= fechaHasta);
 
-        return coincideTexto && coincideTag && coincideFecha;
+        // 4. Filtro Específico Fecha Próximo Despacho
+        let coincideFechaDespacho = true;
+        if (fechaDespachoFiltro) {
+          const fDespState = normalizarFechaISO(state.fechaDespacho);
+          coincideFechaDespacho = state.proximoDespacho && (fDespState === fechaDespachoFiltro);
+        }
+
+        return coincideTexto && coincideTag && coincideFecha && coincideFechaDespacho;
       });
 
       actualizarBarraProgreso(itemsFiltradosGlobal);
@@ -368,6 +388,7 @@
       document.getElementById('filterTag').value = '';
       document.getElementById('filterFechaDesde').value = '';
       document.getElementById('filterFechaHasta').value = '';
+      document.getElementById('filterFechaDespacho').value = '';
       document.getElementById('chkAutoFilter').checked = true;
       aplicarFiltros();
     }
@@ -390,7 +411,7 @@
             items: []
           };
         }
-        if (item.fecha) mapa[keyGroup].fechas.add(normalizarFecha(item.fecha));
+        if (item.fecha) mapa[keyGroup].fechas.add(formatearDDMMAAAA(item.fecha));
         if (item.comprobante) mapa[keyGroup].comprobantes.add(String(item.comprobante));
         mapa[keyGroup].importeTotal += Number(item.importe || 0);
         mapa[keyGroup].items.push(item);
@@ -436,7 +457,7 @@
         });
 
         let badgesHtml = '';
-        if (state.proximoDespacho) badgesHtml += `<span class="tag-badge">📅 PRÓXIMO DESPACHO (${state.fechaDespacho || 'S/F'})</span>`;
+        if (state.proximoDespacho) badgesHtml += `<span class="tag-badge">📅 PRÓX. DESPACHO (${formatearDDMMAAAA(state.fechaDespacho)})</span>`;
         if (state.acumular) badgesHtml += `<span class="tag-badge acumular">📦 ACUMULAR</span>`;
         if (state.delivery) badgesHtml += `<span class="tag-badge">🛵 DELIVERY</span>`;
         if (state.recojoLocal) badgesHtml += `<span class="tag-badge">🏪 RECOJO EN LOCAL</span>`;
@@ -454,7 +475,7 @@
                   <span class="client-name" onclick="toggleAcordeon('${grupo.keyGroup}')">${grupo.cliente}</span>
                   <div class="active-tags-header">${badgesHtml}</div>
                 </div>
-                <div class="client-meta" onclick="toggleAcordeon('${grupo.keyGroup}')">DOC: ${grupo.docCliente} | FECHA: ${arrFechas}</div>
+                <div class="client-meta" onclick="toggleAcordeon('${grupo.keyGroup}')">DOC: ${grupo.docCliente} | FECHA COMPROBANTE: ${arrFechas}</div>
                 <div class="client-meta" onclick="toggleAcordeon('${grupo.keyGroup}')">COMP: ${arrComprobantes} (${grupo.comprobantes.size}) | TOTAL: S/ ${grupo.importeTotal.toFixed(2)}</div>
                 <div class="client-meta" id="progreso-text-${grupo.keyGroup}" style="color:var(--brand-orange);" onclick="toggleAcordeon('${grupo.keyGroup}')">PROGRESO: ${completados}/${totalItems} ÍTEMS</div>
 
