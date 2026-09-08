@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Picking Agilizado por Cliente y Comprobante</title>
   
-  <!-- Librería SheetJS para procesar archivos Excel -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <style>
@@ -31,7 +30,6 @@
       padding: 16px 12px 80px 12px;
     }
 
-    /* Pantalla de PIN */
     .pin-screen {
       position: fixed;
       top: 0; left: 0; width: 100vw; height: 100vh;
@@ -209,7 +207,6 @@
 </head>
 <body>
 
-  <!-- PANTALLA DE ACCESO POR PIN -->
   <div class="pin-screen" id="pinScreen">
     <div class="pin-card">
       <div style="font-size:0.8em; font-weight:800; color:var(--brand-orange); margin-bottom:4px;">SISTEMA DE PICKING</div>
@@ -220,7 +217,6 @@
     </div>
   </div>
 
-  <!-- CONTENIDO PRINCIPAL -->
   <div class="app-content" id="appContent">
     <div class="header-brand">
       <div>
@@ -300,7 +296,7 @@
   <div class="toast-notification" id="toastNotification">✓ ACTUALIZADO</div>
 
   <script>
-    const URL_API = "https://script.google.com/macros/s/AKfycbzgfhVbc7d2r3SSjWVpeuTbSkFxAWpBgTnSw47Jnc9m-KEvpm2UADNT0ezcbUNubd9Y/exec"; 
+    const URL_API = "https://script.google.com/macros/s/AKfycbzgfhVbc7d2r3SSjWVpeuTbSkFxAWpBgTnSw47Jnc9m-KEvpm2UADNT0ezcbUNubd9Y/exec";
 
     let productosGlobales = [];
     let itemsFiltradosGlobal = [];
@@ -322,7 +318,6 @@
       }
     }
 
-    // PROCESADOR DE EXCEL LOCAL Y ENVÍO A LA API
     async function procesarExcel(input) {
       const file = input.files[0];
       if (!file) return;
@@ -339,7 +334,7 @@
           const jsonFilas = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
           if (jsonFilas.length <= 1) {
-            alert("El archivo Excel parece estar vacío o sin filas de datos.");
+            alert("El archivo Excel no contiene filas de datos.");
             return;
           }
 
@@ -350,7 +345,7 @@
             headers: { 'Content-Type': 'text/plain' },
             body: JSON.stringify({
               accion: "AGREGAR_EXCEL",
-              filas: jsonFilas.slice(1) // Omitir la fila de encabezados
+              filas: jsonFilas.slice(1)
             })
           });
 
@@ -359,13 +354,13 @@
             mostrarToast("✓ EXCEL PROCESADO CON ÉXITO");
             cargarDatos();
           } else {
-            alert("Ocurrió un error al procesar el Excel en el servidor.");
+            alert("Ocurrió un error al guardar en Google Sheets.");
           }
         } catch (err) {
           console.error(err);
-          alert("Error al leer el archivo Excel: " + err.message);
+          alert("Error al procesar el archivo Excel: " + err.message);
         } finally {
-          input.value = ""; // Limpiar input file
+          input.value = "";
         }
       };
       reader.readAsArrayBuffer(file);
@@ -433,7 +428,7 @@
 
         aplicarFiltros();
       } catch(e) {
-        document.getElementById('listaClientes').innerText = "Error cargando lista de clientes.";
+        document.getElementById('listaClientes').innerText = "Error cargando la lista de productos.";
       }
     }
 
