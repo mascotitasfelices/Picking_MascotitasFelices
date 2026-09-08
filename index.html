@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Picking Agilizado por Cliente y Comprobante</title>
+  
+  <!-- Librería SheetJS para procesar archivos Excel -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <style>
@@ -88,10 +90,7 @@
       display: none;
     }
 
-    /* Contenido Principal (Oculto hasta ingresar PIN) */
-    .app-content {
-      display: none;
-    }
+    .app-content { display: none; }
 
     .header-brand {
       background: var(--card-bg);
@@ -129,65 +128,26 @@
       gap: 10px;
     }
 
-    .search-input-box input {
-      width: 100%; border: none; outline: none; font-size: 0.95em; font-weight: 500;
-    }
+    .search-input-box input { width: 100%; border: none; outline: none; font-size: 0.95em; font-weight: 500; }
 
     .filter-controls-row {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      align-items: center;
-      padding-top: 8px;
-      border-top: 1px dashed #e2e8f0;
+      display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding-top: 8px; border-top: 1px dashed #e2e8f0;
     }
 
-    .filter-control-group {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 0.75em;
-      font-weight: 700;
-      color: var(--text-muted);
-    }
-
+    .filter-control-group { display: flex; align-items: center; gap: 4px; font-size: 0.75em; font-weight: 700; color: var(--text-muted); }
     .filter-control-group select, .filter-control-group input[type="date"] {
-      border: 1px solid #cbd5e1;
-      border-radius: 8px;
-      padding: 4px 8px;
-      font-size: 0.85em;
-      outline: none;
-      background: white;
-      color: var(--text-dark);
+      border: 1px solid #cbd5e1; border-radius: 8px; padding: 4px 8px; font-size: 0.85em; outline: none; background: white; color: var(--text-dark);
     }
 
     .checkbox-filter {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.75em;
-      font-weight: 800;
-      color: #0369a1;
-      background: #e0f2fe;
-      padding: 4px 8px;
-      border-radius: 8px;
-      cursor: pointer;
+      display: flex; align-items: center; gap: 6px; font-size: 0.75em; font-weight: 800; color: #0369a1; background: #e0f2fe; padding: 4px 8px; border-radius: 8px; cursor: pointer;
     }
 
     .btn-clear-filters {
-      font-size: 0.72em;
-      font-weight: 700;
-      padding: 5px 10px;
-      border-radius: 8px;
-      border: none;
-      background: #fee2e2;
-      color: #991b1b;
-      cursor: pointer;
-      margin-left: auto;
+      font-size: 0.72em; font-weight: 700; padding: 5px 10px; border-radius: 8px; border: none; background: #fee2e2; color: #991b1b; cursor: pointer; margin-left: auto;
     }
 
     .client-list { display: flex; flex-direction: column; gap: 14px; }
-
     .client-card { background: var(--card-bg); border-radius: 20px; padding: 14px 16px; border: 1px solid #e2e8f0; }
     .client-card.completo { background-color: #f0fdf4 !important; border: 1.5px solid #86efac; }
     .client-card.despachado { background-color: #f8fafc !important; opacity: 0.85; border: 1px solid #cbd5e1; }
@@ -209,12 +169,7 @@
     .comp-container { display: none; margin-top: 14px; padding-top: 12px; border-top: 1px solid #e2e8f0; flex-direction: column; gap: 12px; }
     .comp-container.active { display: flex; }
 
-    .comp-card {
-      background: #f8fafc;
-      border: 1px solid #cbd5e1;
-      border-radius: 14px;
-      padding: 12px;
-    }
+    .comp-card { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 14px; padding: 12px; }
     .comp-card.completo { background-color: var(--status-completed-bg); border-color: var(--status-completed-border); }
 
     .comp-header { display: flex; justify-content: space-between; align-items: flex-start; cursor: pointer; }
@@ -265,7 +220,7 @@
     </div>
   </div>
 
-  <!-- CONTENIDO PRINCIPAL DEL SISTEMA -->
+  <!-- CONTENIDO PRINCIPAL -->
   <div class="app-content" id="appContent">
     <div class="header-brand">
       <div>
@@ -367,6 +322,55 @@
       }
     }
 
+    // PROCESADOR DE EXCEL LOCAL Y ENVÍO A LA API
+    async function procesarExcel(input) {
+      const file = input.files[0];
+      if (!file) return;
+
+      mostrarToast("⌛ Leyendo archivo Excel...");
+
+      const reader = new FileReader();
+      reader.onload = async function(e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const jsonFilas = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+          if (jsonFilas.length <= 1) {
+            alert("El archivo Excel parece estar vacío o sin filas de datos.");
+            return;
+          }
+
+          mostrarToast("🚀 Enviando datos al servidor...");
+
+          const res = await fetch(URL_API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify({
+              accion: "AGREGAR_EXCEL",
+              filas: jsonFilas.slice(1) // Omitir la fila de encabezados
+            })
+          });
+
+          const respJson = await res.json();
+          if (respJson.status === 'ok') {
+            mostrarToast("✓ EXCEL PROCESADO CON ÉXITO");
+            cargarDatos();
+          } else {
+            alert("Ocurrió un error al procesar el Excel en el servidor.");
+          }
+        } catch (err) {
+          console.error(err);
+          alert("Error al leer el archivo Excel: " + err.message);
+        } finally {
+          input.value = ""; // Limpiar input file
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
     function normalizarKeyClient(val) {
       return String(val || 'GENERAL').trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
     }
@@ -379,7 +383,6 @@
       if (!f) return "";
       let str = String(f).trim();
       
-      // Manejar formato largo de Date (p.ej. Sat Jun 06 2026...)
       if (str.length > 10) {
         const d = new Date(str);
         if (!isNaN(d.getTime())) {
@@ -394,7 +397,6 @@
       return str;
     }
 
-    // FORMATEO EXPLICITO A ESPAÑOL DD/MM/AAAA
     function formatearEspañolDDMMAAAA(fISO) {
       const iso = normalizarFechaISO(fISO);
       if (!iso || !iso.includes("-")) return iso || "S/F";
