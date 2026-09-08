@@ -29,6 +29,70 @@
       padding: 16px 12px 80px 12px;
     }
 
+    /* Pantalla de PIN */
+    .pin-screen {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: var(--primary-dark);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 5000;
+      color: white;
+      padding: 20px;
+    }
+
+    .pin-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 20px;
+      padding: 24px;
+      width: 100%;
+      max-width: 320px;
+      text-align: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+
+    .pin-input {
+      width: 100%;
+      font-size: 2em;
+      letter-spacing: 12px;
+      text-align: center;
+      padding: 10px;
+      border-radius: 12px;
+      border: 2px solid #475569;
+      background: #0f172a;
+      color: #38bdf8;
+      margin: 16px 0;
+      outline: none;
+    }
+
+    .pin-btn {
+      width: 100%;
+      padding: 12px;
+      background: var(--brand-orange);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-weight: 800;
+      font-size: 1em;
+      cursor: pointer;
+    }
+
+    .pin-error {
+      color: #f87171;
+      font-size: 0.85em;
+      font-weight: 700;
+      margin-top: 10px;
+      display: none;
+    }
+
+    /* Contenido Principal (Oculto hasta ingresar PIN) */
+    .app-content {
+      display: none;
+    }
+
     .header-brand {
       background: var(--card-bg);
       border-radius: 20px;
@@ -142,7 +206,6 @@
 
     .client-meta { font-size: 0.75em; color: var(--text-muted); margin-top: 2px; font-weight: 600; }
 
-    /* Contenedor Secundario: Comprobantes dentro del Cliente */
     .comp-container { display: none; margin-top: 14px; padding-top: 12px; border-top: 1px solid #e2e8f0; flex-direction: column; gap: 12px; }
     .comp-container.active { display: flex; }
 
@@ -163,7 +226,6 @@
     .btn-option-tag.active.despachado { background: #16a34a; border-color: #15803d; }
     .btn-option-tag.active.acumular { background: #d97706; border-color: #b45309; }
 
-    /* Contenedor Terciario: Productos dentro del Comprobante */
     .items-container { display: none; margin-top: 10px; padding-top: 8px; border-top: 1px solid #e2e8f0; flex-direction: column; gap: 8px; }
     .items-container.active { display: flex; }
 
@@ -192,66 +254,80 @@
 </head>
 <body>
 
-  <div class="header-brand">
-    <div>
-      <div class="company-name">SISTEMA DE PICKING</div>
-      <div class="header-title">CONTROL POR CLIENTE Y COMPROBANTE</div>
-    </div>
-    <button class="btn-upload" onclick="document.getElementById('fileExcel').click()">➕ AGREGAR EXCEL</button>
-    <input type="file" id="fileExcel" accept=".xlsx, .xls" style="display:none" onchange="procesarExcel(this)">
-  </div>
-
-  <div class="progress-card">
-    <div class="progress-text">
-      <span>PROGRESO (FILTRADO)</span>
-      <span id="progressStats">0 / 0 ÍTEMS | 0 COMPROBANTES</span>
-    </div>
-    <div class="progress-bar-bg">
-      <div class="progress-bar-fill" id="progressBar"></div>
+  <!-- PANTALLA DE ACCESO POR PIN -->
+  <div class="pin-screen" id="pinScreen">
+    <div class="pin-card">
+      <div style="font-size:0.8em; font-weight:800; color:var(--brand-orange); margin-bottom:4px;">SISTEMA DE PICKING</div>
+      <h3 style="margin:0 0 12px 0;">Ingrese PIN de Acceso</h3>
+      <input type="password" id="inputPin" class="pin-input" maxlength="4" placeholder="••••" onkeyup="if(event.key==='Enter') verificarPin()">
+      <button class="pin-btn" onclick="verificarPin()">INGRESAR</button>
+      <div class="pin-error" id="pinError">❌ PIN Incorrecto</div>
     </div>
   </div>
 
-  <div class="search-section">
-    <div class="search-input-box">
-      <input type="text" id="txtBuscar" placeholder="🔍 Buscar cliente, producto, DNI o comprobante..." oninput="aplicarFiltros()">
+  <!-- CONTENIDO PRINCIPAL DEL SISTEMA -->
+  <div class="app-content" id="appContent">
+    <div class="header-brand">
+      <div>
+        <div class="company-name">SISTEMA DE PICKING</div>
+        <div class="header-title">CONTROL POR CLIENTE Y COMPROBANTE</div>
+      </div>
+      <button class="btn-upload" onclick="document.getElementById('fileExcel').click()">➕ AGREGAR EXCEL</button>
+      <input type="file" id="fileExcel" accept=".xlsx, .xls" style="display:none" onchange="procesarExcel(this)">
     </div>
-    
-    <div class="filter-controls-row">
-      <label class="checkbox-filter">
-        <input type="checkbox" id="chkAutoFilter" checked onchange="aplicarFiltros()">
-        <span>⚡ Último Día / No Despachados</span>
-      </label>
 
-      <div class="filter-control-group">
-        <span>🏷️ Etiqueta:</span>
-        <select id="filterTag" onchange="aplicarFiltros()">
-          <option value="">TODAS</option>
-          <option value="proximoDespacho">📅 Próximo Despacho</option>
-          <option value="acumular">📦 Acumular</option>
-          <option value="delivery">🛵 Delivery</option>
-          <option value="recojoLocal">🏪 Recojo en Local</option>
-          <option value="despachado">🚀 Despachado</option>
-          <option value="sinEtiqueta">⚪ Sin Etiqueta</option>
-        </select>
+    <div class="progress-card">
+      <div class="progress-text">
+        <span>PROGRESO (FILTRADO)</span>
+        <span id="progressStats">0 / 0 ÍTEMS | 0 COMPROBANTES</span>
       </div>
-
-      <div class="filter-control-group">
-        <span>📅 Emisión:</span>
-        <input type="date" id="filterFechaDesde" onchange="aplicarFiltros()">
-        <span>a</span>
-        <input type="date" id="filterFechaHasta" onchange="aplicarFiltros()">
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progressBar"></div>
       </div>
-
-      <div class="filter-control-group">
-        <span>🚚 F. Próx. Despacho:</span>
-        <input type="date" id="filterFechaDespacho" onchange="aplicarFiltros()">
-      </div>
-
-      <button class="btn-clear-filters" onclick="limpiarFiltros()">🧹 Limpiar Filtros</button>
     </div>
+
+    <div class="search-section">
+      <div class="search-input-box">
+        <input type="text" id="txtBuscar" placeholder="🔍 Buscar cliente, producto, DNI o comprobante..." oninput="aplicarFiltros()">
+      </div>
+      
+      <div class="filter-controls-row">
+        <label class="checkbox-filter">
+          <input type="checkbox" id="chkAutoFilter" checked onchange="aplicarFiltros()">
+          <span>⚡ Último Día / No Despachados</span>
+        </label>
+
+        <div class="filter-control-group">
+          <span>🏷️ Etiqueta:</span>
+          <select id="filterTag" onchange="aplicarFiltros()">
+            <option value="">TODAS</option>
+            <option value="proximoDespacho">📅 Próximo Despacho</option>
+            <option value="acumular">📦 Acumular</option>
+            <option value="delivery">🛵 Delivery</option>
+            <option value="recojoLocal">🏪 Recojo en Local</option>
+            <option value="despachado">🚀 Despachado</option>
+            <option value="sinEtiqueta">⚪ Sin Etiqueta</option>
+          </select>
+        </div>
+
+        <div class="filter-control-group">
+          <span>📅 Emisión:</span>
+          <input type="date" id="filterFechaDesde" onchange="aplicarFiltros()">
+          <span>a</span>
+          <input type="date" id="filterFechaHasta" onchange="aplicarFiltros()">
+        </div>
+
+        <div class="filter-control-group">
+          <span>🚚 F. Próx. Despacho:</span>
+          <input type="date" id="filterFechaDespacho" onchange="aplicarFiltros()">
+        </div>
+
+        <button class="btn-clear-filters" onclick="limpiarFiltros()">🧹 Limpiar Filtros</button>
+      </div>
+    </div>
+
+    <div class="client-list" id="listaClientes">Cargando datos...</div>
   </div>
-
-  <div class="client-list" id="listaClientes">Cargando datos...</div>
 
   <div class="modal-overlay" id="modalOverlay">
     <div class="modal-card">
@@ -279,6 +355,18 @@
     let estadoEtiquetasComprobantes = {}; 
     let ultimaFechaGeneral = "";
 
+    function verificarPin() {
+      const pin = document.getElementById('inputPin').value;
+      if (pin === "1312") {
+        document.getElementById('pinScreen').style.display = 'none';
+        document.getElementById('appContent').style.display = 'block';
+        cargarDatos();
+      } else {
+        document.getElementById('pinError').style.display = 'block';
+        document.getElementById('inputPin').value = '';
+      }
+    }
+
     function normalizarKeyClient(val) {
       return String(val || 'GENERAL').trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
     }
@@ -290,11 +378,24 @@
     function normalizarFechaISO(f) {
       if (!f) return "";
       let str = String(f).trim();
+      
+      // Manejar formato largo de Date (p.ej. Sat Jun 06 2026...)
+      if (str.length > 10) {
+        const d = new Date(str);
+        if (!isNaN(d.getTime())) {
+          const yyyy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, '0');
+          const dd = String(d.getDate()).padStart(2, '0');
+          return `${yyyy}-${mm}-${dd}`;
+        }
+      }
+
       if (str.includes("T")) str = str.split("T")[0];
       return str;
     }
 
-    function formatearDDMMAAAA(fISO) {
+    // FORMATEO EXPLICITO A ESPAÑOL DD/MM/AAAA
+    function formatearEspañolDDMMAAAA(fISO) {
       const iso = normalizarFechaISO(fISO);
       if (!iso || !iso.includes("-")) return iso || "S/F";
       const partes = iso.split("-");
@@ -446,11 +547,11 @@
           const completadosComp = compObj.items.filter(i => Number(i.cantPickeada) >= Number(i.cantSolicitada)).length;
           const stateComp = estadoEtiquetasComprobantes[compObj.keyComp] || {};
 
-          let prioridadComp = 1; // Pendiente
+          let prioridadComp = 1; 
           if (stateComp.despachado) {
-            prioridadComp = 3; // Despachado al final
+            prioridadComp = 3; 
           } else if (totalItemsComp > 0 && totalItemsComp === completadosComp) {
-            prioridadComp = 2; // Completo
+            prioridadComp = 2; 
           }
 
           return {
@@ -463,7 +564,6 @@
           };
         });
 
-        // Ordenar Comprobantes: Pendientes (1) -> Completos (2) -> Despachados (3)
         comprobantesList.sort((a, b) => a.prioridad - b.prioridad);
 
         const totalItemsCli = comprobantesList.reduce((acc, c) => acc + c.totalItems, 0);
@@ -471,11 +571,11 @@
         const esCliDespachado = comprobantesList.length > 0 && comprobantesList.every(c => c.esDespachado);
         const esCliCompleto = totalItemsCli > 0 && totalItemsCli === completadosCli;
 
-        let prioridadCli = 1; // Pendiente
+        let prioridadCli = 1; 
         if (esCliDespachado) {
-          prioridadCli = 3; // Al último
+          prioridadCli = 3; 
         } else if (esCliCompleto) {
-          prioridadCli = 2; // Al siguiente
+          prioridadCli = 2; 
         }
 
         return {
@@ -489,7 +589,6 @@
         };
       });
 
-      // Ordenar Clientes: Pendientes (1) -> Completos (2) -> Despachados (3)
       listaClientes.sort((a, b) => a.prioridad - b.prioridad);
 
       renderizarListaJerarquica(listaClientes);
@@ -537,7 +636,7 @@
           });
 
           let badgesCompHtml = '';
-          if (stateComp.proximoDespacho) badgesCompHtml += `<span class="tag-badge">📅 PRÓX. DESPACHO (${formatearDDMMAAAA(stateComp.fechaDespacho)})</span>`;
+          if (stateComp.proximoDespacho) badgesCompHtml += `<span class="tag-badge">📅 PRÓX. DESPACHO (${formatearEspañolDDMMAAAA(stateComp.fechaDespacho)})</span>`;
           if (stateComp.acumular) badgesCompHtml += `<span class="tag-badge acumular">📦 ACUMULAR</span>`;
           if (stateComp.delivery) badgesCompHtml += `<span class="tag-badge">🛵 DELIVERY</span>`;
           if (stateComp.recojoLocal) badgesCompHtml += `<span class="tag-badge">🏪 RECOJO EN LOCAL</span>`;
@@ -547,7 +646,7 @@
             <div class="comp-card ${claseComp}" id="card-comp-${comp.keyComp}">
               <div class="comp-header" onclick="toggleAcordeonComprobante('${comp.keyComp}')">
                 <div>
-                  <div class="comp-title">📄 COMPROBANTE: ${comp.comprobanteOriginal} (${formatearDDMMAAAA(comp.fecha)})</div>
+                  <div class="comp-title">📄 COMPROBANTE: ${comp.comprobanteOriginal} (${formatearEspañolDDMMAAAA(comp.fecha)})</div>
                   <div class="client-meta">TOTAL: S/ ${comp.importeTotal.toFixed(2)} | PROGRESO: ${comp.completados}/${comp.totalItems} ÍTEMS</div>
                   <div class="active-tags-header" style="margin-top:4px;">${badgesCompHtml}</div>
                 </div>
@@ -715,8 +814,6 @@
       toast.classList.add('show');
       setTimeout(() => { toast.classList.remove('show'); }, 2000);
     }
-
-    cargarDatos();
   </script>
 </body>
 </html>
