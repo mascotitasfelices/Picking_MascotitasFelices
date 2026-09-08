@@ -378,6 +378,11 @@
       if (!f) return "";
       let str = String(f).trim();
       
+      if (str.includes("/")) {
+        const parts = str.split("/");
+        if (parts.length === 3) return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+      }
+
       if (str.length > 10) {
         const d = new Date(str);
         if (!isNaN(d.getTime())) {
@@ -405,7 +410,14 @@
     async function cargarDatos() {
       try {
         const res = await fetch(URL_API);
-        productosGlobales = await res.json();
+        const data = await res.json();
+
+        if (data.error) {
+          document.getElementById('listaClientes').innerText = "Error Google Sheets: " + data.error;
+          return;
+        }
+
+        productosGlobales = data;
         
         ultimaFechaGeneral = "";
         productosGlobales.forEach(item => {
@@ -428,7 +440,7 @@
 
         aplicarFiltros();
       } catch(e) {
-        document.getElementById('listaClientes').innerText = "Error cargando la lista de productos.";
+        document.getElementById('listaClientes').innerText = "Error cargando la lista de productos: " + e.message;
       }
     }
 
