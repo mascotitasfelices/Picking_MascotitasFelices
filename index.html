@@ -93,7 +93,7 @@
 
     .toast-notification {
       position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8); background: rgba(15, 23, 42, 0.95);
-      color: #ffffff; padding: 14px 28px; border-radius: 30px; font-weight: 700; font-size: 0.9em; opacity: 0; visibility: hidden; transition: all 0.25s ease; z-index: 2000;
+      color: #ffffff; padding: 14px 28px; border-radius: 30px; font-weight: 700; font-size: 0.9em; opacity: 0; visibility: hidden; transition: all 0.25s ease; z-index: 2000; text-align: center; max-width: 80%;
     }
     .toast-notification.show { opacity: 1; visibility: visible; transform: translate(-50%, -50%) scale(1); }
   </style>
@@ -105,7 +105,7 @@
       <div class="company-name">SISTEMA DE PICKING</div>
       <div class="header-title">CONTROL POR CLIENTE</div>
     </div>
-    <button class="btn-upload" onclick="document.getElementById('fileExcel').click()">📄 CARGAR EXCEL</button>
+    <button class="btn-upload" onclick="document.getElementById('fileExcel').click()">➕ AGREGAR EXCEL</button>
     <input type="file" id="fileExcel" accept=".xlsx, .xls" style="display:none" onchange="procesarExcel(this)">
   </div>
 
@@ -127,10 +127,10 @@
 
   <div class="modal-overlay" id="modalOverlay">
     <div class="modal-card">
-      <div style="font-size:0.8em; font-weight:800; color:var(--brand-orange);">CONFIRMAR PRODUCTO EN MANO</div>
+      <div style="font-size:0.8em; font-weight:800; color:var(--brand-orange);" id="modalTag">CONFIRMAR PRODUCTO EN MANO</div>
       <div style="font-size: 1.15em; font-weight:800; margin:14px 0; color:var(--primary-dark); line-height:1.3;" id="modalProductName">PRODUCTO</div>
       <div style="font-size:0.85em; color:var(--text-muted);" id="modalProductMeta">Detalles...</div>
-      <div class="modal-actions">
+      <div class="modal-actions" id="modalActions">
         <button class="btn-modal btn-cancel" onclick="cerrarModal(false)">CANCELAR</button>
         <button class="btn-modal btn-confirm" onclick="cerrarModal(true)">MARCAR PICKEADO</button>
       </div>
@@ -289,8 +289,10 @@
       const yaPickeado = Number(itemObj.cantPickeada) >= Number(solicitada);
 
       abrirModal(
+        "CONFIRMAR PRODUCTO EN MANO",
         nombre,
         `Código Item: <b>${codigo}</b><br>Cantidad Requerida: <b>${solicitada}</b><br><br>${yaPickeado ? '¿Desmarcar producto?' : '¿Confirmar producto recolectado?'}`,
+        true,
         async (conf) => {
           if (conf) {
             const res = await fetch(URL_API, { method: 'POST', body: JSON.stringify({ accion: "TOGGLE_PICKING", fila: fila }) });
@@ -360,33 +362,52 @@
 
     async function procesarExcel(input) {
       if (!input.files.length) return;
-      mostrarToast("Procesando Excel...");
+      mostrarToast("Procesando archivo Excel...");
+      
       const data = await input.files[0].arrayBuffer();
       const workbook = XLSX.read(data, { type: 'array' });
       const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
 
-      const vistasUnicas = new Set();
-      const rows = [];
+      // Crear un Set con todos los ítems ya cargados en la base de datos
+      const existentes = new Set();
+      productosGlobales.forEach(p => {
+        const clave = `${p.comprobante}_${p.codigo}`;
+        existentes.add(clave);
+      });
+
+      const rowsAInsertar = [];
+      let rechazadosCantidadCero = 0;
+      let rechazadosDuplicados = 0;
 
       rawData.forEach(r => {
         const cantidad = Number(r['CANTIDAD'] || 0);
-        if (cantidad <= 0) return;
+        
+        // 1. Filtro: Rechazar si la cantidad es 0 o menor
+        if (cantidad <= 0) {
+          rechazadosCantidadCero++;
+          return;
+        }
 
         const serie = r['SERIE'] || '';
         const numero = r['NUMERO'] || '';
-        const codigo = r['CODIGO ITEM'] || '';
+        const codigo = r['CODIGO ITEM'] || 'S/C';
         const comprobante = `${serie}-${numero}`;
-
         const claveUnica = `${comprobante}_${codigo}`;
-        if (vistasUnicas.has(claveUnica)) return;
-        vistasUnicas.add(claveUnica);
 
-        rows.push([
+        // 2. Filtro: Rechazar si el comprobante e ítem ya existen previamente
+        if (existentes.has(claveUnica)) {
+          rechazadosDuplicados++;
+          return;
+        }
+
+        existentes.add(claveUnica);
+
+        rowsAInsertar.push([
           r['FECHA'] || '',
           r['DOC CLIENTE'] || 'S/D',
           r['CLIENTE'] || 'CLIENTE GENERAL',
           comprobante,
-          codigo || 'S/C',
+          codigo,
           r['DESCRIPCION'] || 'SIN DESCRIPCION',
           r['CATEGORIA'] || 'GENERAL',
           r['UNIDAD MEDIDA'] || 'EA',
@@ -396,14 +417,52 @@
         ]);
       });
 
-      await fetch(URL_API, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ rows: rows }) });
-      mostrarToast("¡Carga completa!");
+      // Si no hay filas válidas para subir
+      if (rowsAInsertar.length === 0) {
+        abrirModal(
+          "⚠️ ATENCIÓN: ARCHIVO RECHAZADO",
+          "No se agregaron nuevos registros",
+          `<b>Motivos del rechazo:</b><br><br>
+           • Comprobantes ya existentes: <b>${rechazadosDuplicados}</b><br>
+           • Ítems con cantidad 0: <b>${rechazadosCantidadCero}</b>`,
+          false
+        );
+        input.value = "";
+        return;
+      }
+
+      // Enviar solo las filas válidas al Backend (que las AGREGARÁ)
+      await fetch(URL_API, { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'text/plain' }, 
+        body: JSON.stringify({ rows: rowsAInsertar }) 
+      });
+
+      // Advertencia al usuario si se aceptaron algunos y rechazaron otros
+      let mensajeAdvertencia = `Se agregaron <b>${rowsAInsertar.length}</b> nuevos ítems exitosamente.<br><br>`;
+      if (rechazadosDuplicados > 0 || rechazadosCantidadCero > 0) {
+        mensajeAdvertencia += `<b>Detalle de rechazados:</b><br>
+          ${rechazadosDuplicados > 0 ? `• Comprobantes duplicados: <b>${rechazadosDuplicados}</b><br>` : ''}
+          ${rechazadosCantidadCero > 0 ? `• Ítems con cantidad 0: <b>${rechazadosCantidadCero}</b>` : ''}`;
+      }
+
+      abrirModal("REPORTE DE CARGA", "Proceso Finalizado", mensajeAdvertencia, false);
+      input.value = "";
       cargarDatos();
     }
 
-    function abrirModal(nombre, meta, callback) {
+    function abrirModal(tag, nombre, meta, conBotones = true, callback = null) {
+      document.getElementById('modalTag').innerText = tag;
       document.getElementById('modalProductName').innerText = nombre;
       document.getElementById('modalProductMeta').innerHTML = meta;
+      
+      const actions = document.getElementById('modalActions');
+      if (conBotones) {
+        actions.style.display = 'flex';
+      } else {
+        actions.style.display = 'none';
+      }
+      
       document.getElementById('modalOverlay').classList.add('active');
       accionPendiente = callback;
     }
@@ -417,7 +476,7 @@
       const toast = document.getElementById('toastNotification');
       toast.innerText = txt;
       toast.classList.add('show');
-      setTimeout(() => { toast.classList.remove('show'); }, 1800);
+      setTimeout(() => { toast.classList.remove('show'); }, 2000);
     }
 
     cargarDatos();
