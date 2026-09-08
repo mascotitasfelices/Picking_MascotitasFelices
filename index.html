@@ -5,39 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Picking Agilizado por Cliente y Comprobante</title>
   
-  <!-- CONFIGURACIÓN PWA Y LOGO DESDE GOOGLE DRIVE -->
+  <!-- CONFIGURACIÓN PWA IDÉNTICA A TU OTRA APP -->
+  <link rel="manifest" href="./manifest.json">
   <link rel="icon" type="image/png" href="https://lh3.googleusercontent.com/d/15UU95djdzlxZErpFFqwHfXPMukffnN-f">
-  <link rel="apple-touch-icon" href="https://lh3.googleusercontent.com/d/15UU95djdzlxZErpFFqwHfXPMukffnN-f">
+  
   <meta name="theme-color" content="#0f172a">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Picking App">
-
-  <!-- MANIFEST DE LA PWA EMBEBIDO -->
-  <link rel="manifest" href='data:application/manifest+json,{
-    "name": "Control de Picking",
-    "short_name": "Picking App",
-    "start_url": "./",
-    "display": "standalone",
-    "background_color": "#0f172a",
-    "theme_color": "#0f172a",
-    "orientation": "portrait",
-    "icons": [
-      {
-        "src": "https://lh3.googleusercontent.com/d/15UU95djdzlxZErpFFqwHfXPMukffnN-f",
-        "sizes": "192x192",
-        "type": "image/png",
-        "purpose": "any maskable"
-      },
-      {
-        "src": "https://lh3.googleusercontent.com/d/15UU95djdzlxZErpFFqwHfXPMukffnN-f",
-        "sizes": "512x512",
-        "type": "image/png",
-        "purpose": "any maskable"
-      }
-    ]
-  }'>
+  <link rel="apple-touch-icon" href="https://lh3.googleusercontent.com/d/15UU95djdzlxZErpFFqwHfXPMukffnN-f">
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
@@ -63,6 +40,7 @@
       margin: 0;
       padding: 16px 12px 80px 12px;
       user-select: none;
+      -webkit-tap-highlight-color: transparent;
     }
 
     .pin-screen {
@@ -391,21 +369,13 @@
     let ultimaFechaGeneral = "";
     let deferredPrompt = null;
 
-    // REGISTRO DE SERVICE WORKER PARA PWA
+    // REGISTRO DE SERVICE WORKER EXACTAMENTE IGUAL A TU OTRA APP
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        const swCode = `
-          self.addEventListener('install', e => self.skipWaiting());
-          self.addEventListener('activate', e => self.clients.claim());
-          self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(() => new Response('Offline'))));
-        `;
-        const blob = new Blob([swCode], { type: 'text/javascript' });
-        const swUrl = URL.createObjectURL(blob);
-        navigator.serviceWorker.register(swUrl).catch(err => console.log('SW Error:', err));
+        navigator.serviceWorker.register('./sw.js').catch(()=>{});
       });
     }
 
-    // CAPTURA DE EVENTO PARA INSTALAR COMO APP
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
@@ -859,8 +829,7 @@
 
       accionPendiente = async () => {
         item.cantPickeada = nuevaCant;
-        
-        // Actualización Visual Inmediata
+
         const cardElem = document.getElementById(`item-card-${fila}`);
         const titleElem = document.getElementById(`item-title-${fila}`);
         if (cardElem && titleElem) {
@@ -876,7 +845,6 @@
         actualizarBarraProgreso(itemsFiltradosGlobal);
         agruparPorClienteYComprobante(itemsFiltradosGlobal);
 
-        // Envío en segundo plano
         try {
           await fetch(URL_API, {
             method: 'POST',
