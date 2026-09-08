@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Picking Agilizado por Cliente</title>
+  <title>Picking Agilizado por Cliente y Comprobante</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <style>
@@ -125,15 +125,16 @@
     .client-list { display: flex; flex-direction: column; gap: 14px; }
 
     .client-card { background: var(--card-bg); border-radius: 20px; padding: 14px 16px; border: 1px solid #e2e8f0; }
-    .client-card.completo { background-color: var(--status-completed-bg) !important; border: 1.5px solid var(--status-completed-border); }
+    .client-card.completo { background-color: #f0fdf4 !important; border: 1.5px solid #86efac; }
+    .client-card.despachado { background-color: #f8fafc !important; opacity: 0.85; border: 1px solid #cbd5e1; }
 
-    .card-main { display: flex; align-items: flex-start; justify-content: space-between; }
+    .card-main { display: flex; align-items: flex-start; justify-content: space-between; cursor: pointer; }
     .card-left { display: flex; align-items: flex-start; gap: 12px; width: 100%; }
     .icon-circle { width: 42px; height: 42px; border-radius: 12px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 1.1em; flex-shrink: 0; }
     
     .client-header-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
     .client-name { font-weight: 800; font-size: 0.95em; color: var(--text-dark); text-transform: uppercase; }
-    
+
     .active-tags-header { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
     .tag-badge { font-size: 0.68em; font-weight: 800; padding: 3px 8px; border-radius: 8px; background: #0284c7; color: white; display: inline-flex; align-items: center; gap: 4px; }
     .tag-badge.despachado { background: #16a34a; }
@@ -141,20 +142,36 @@
 
     .client-meta { font-size: 0.75em; color: var(--text-muted); margin-top: 2px; font-weight: 600; }
 
-    .options-bar-bottom { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; padding-top: 10px; border-top: 1px dashed #cbd5e1; }
-    .btn-option-tag { font-size: 0.72em; font-weight: 700; padding: 6px 10px; border-radius: 10px; border: 1px solid #cbd5e1; background: #f8fafc; color: #475569; cursor: pointer; }
+    /* Contenedor Secundario: Comprobantes dentro del Cliente */
+    .comp-container { display: none; margin-top: 14px; padding-top: 12px; border-top: 1px solid #e2e8f0; flex-direction: column; gap: 12px; }
+    .comp-container.active { display: flex; }
+
+    .comp-card {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 14px;
+      padding: 12px;
+    }
+    .comp-card.completo { background-color: var(--status-completed-bg); border-color: var(--status-completed-border); }
+
+    .comp-header { display: flex; justify-content: space-between; align-items: flex-start; cursor: pointer; }
+    .comp-title { font-size: 0.85em; font-weight: 800; color: var(--primary-dark); }
+
+    .options-bar-bottom { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; padding-top: 8px; border-top: 1px dashed #cbd5e1; }
+    .btn-option-tag { font-size: 0.7em; font-weight: 700; padding: 5px 8px; border-radius: 8px; border: 1px solid #cbd5e1; background: #ffffff; color: #475569; cursor: pointer; }
     .btn-option-tag.active { background: #0284c7; color: white; border-color: #0369a1; }
     .btn-option-tag.active.despachado { background: #16a34a; border-color: #15803d; }
     .btn-option-tag.active.acumular { background: #d97706; border-color: #b45309; }
 
-    .client-items-container { display: none; margin-top: 14px; padding-top: 12px; border-top: 1px solid #cbd5e1; flex-direction: column; gap: 10px; }
-    .client-items-container.active { display: flex; }
+    /* Contenedor Terciario: Productos dentro del Comprobante */
+    .items-container { display: none; margin-top: 10px; padding-top: 8px; border-top: 1px solid #e2e8f0; flex-direction: column; gap: 8px; }
+    .items-container.active { display: flex; }
 
-    .item-tap-card { background: #ffffff; border-radius: 14px; padding: 12px; border: 2px solid #cbd5e1; cursor: pointer; }
+    .item-tap-card { background: #ffffff; border-radius: 10px; padding: 10px; border: 1.5px solid #cbd5e1; cursor: pointer; }
     .item-tap-card.picked { background: #dcfce7; border-color: #16a34a; }
 
-    .item-title { font-weight: 800; font-size: 0.9em; color: var(--primary-dark); text-transform: uppercase; margin-bottom: 4px; }
-    .item-sub-info { display: flex; justify-content: space-between; font-size: 0.8em; font-weight: 700; color: var(--text-muted); }
+    .item-title { font-weight: 800; font-size: 0.85em; color: var(--primary-dark); text-transform: uppercase; margin-bottom: 2px; }
+    .item-sub-info { display: flex; justify-content: space-between; font-size: 0.75em; font-weight: 700; color: var(--text-muted); }
 
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(4px); }
     .modal-overlay.active { display: flex; }
@@ -178,7 +195,7 @@
   <div class="header-brand">
     <div>
       <div class="company-name">SISTEMA DE PICKING</div>
-      <div class="header-title">CONTROL POR CLIENTE</div>
+      <div class="header-title">CONTROL POR CLIENTE Y COMPROBANTE</div>
     </div>
     <button class="btn-upload" onclick="document.getElementById('fileExcel').click()">➕ AGREGAR EXCEL</button>
     <input type="file" id="fileExcel" accept=".xlsx, .xls" style="display:none" onchange="procesarExcel(this)">
@@ -234,7 +251,7 @@
     </div>
   </div>
 
-  <div class="client-list" id="listaClientes">Cargando lista de clientes...</div>
+  <div class="client-list" id="listaClientes">Cargando datos...</div>
 
   <div class="modal-overlay" id="modalOverlay">
     <div class="modal-card">
@@ -257,12 +274,17 @@
     let productosGlobales = [];
     let itemsFiltradosGlobal = [];
     let accionPendiente = null;
-    let acordeonesAbiertos = new Set();
-    let estadoEtiquetasClientes = {}; 
+    let acordeonesClientes = new Set();
+    let acordeonesComprobantes = new Set();
+    let estadoEtiquetasComprobantes = {}; 
     let ultimaFechaGeneral = "";
 
-    function normalizarKey(val) {
-      return String(val || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
+    function normalizarKeyClient(val) {
+      return String(val || 'GENERAL').trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
+    }
+
+    function normalizarKeyComp(val) {
+      return String(val || 'SIN_COMPROBANTE').trim().toUpperCase().replace(/[^A-Z0-9]/g, '_');
     }
 
     function normalizarFechaISO(f) {
@@ -292,10 +314,10 @@
           const fStr = normalizarFechaISO(item.fecha);
           if (fStr > ultimaFechaGeneral) ultimaFechaGeneral = fStr;
 
-          const keyGroup = normalizarKey(item.docCliente || item.cliente || 'GENERAL');
-          if (!estadoEtiquetasClientes[keyGroup]) {
+          const keyComp = normalizarKeyComp(item.comprobante);
+          if (!estadoEtiquetasComprobantes[keyComp]) {
             const tagsArray = item.etiquetas ? item.etiquetas.split(",") : [];
-            estadoEtiquetasClientes[keyGroup] = {
+            estadoEtiquetasComprobantes[keyComp] = {
               proximoDespacho: tagsArray.includes("proximoDespacho"),
               fechaDespacho: item.fechaDespacho || "",
               acumular: tagsArray.includes("acumular"),
@@ -308,7 +330,7 @@
 
         aplicarFiltros();
       } catch(e) {
-        document.getElementById('listaClientes').innerText = "Error cargando lista.";
+        document.getElementById('listaClientes').innerText = "Error cargando lista de clientes.";
       }
     }
 
@@ -338,25 +360,22 @@
       const autoFiltrarUltimoDia = document.getElementById('chkAutoFilter').checked;
 
       itemsFiltradosGlobal = productosGlobales.filter(item => {
-        const keyGroup = normalizarKey(item.docCliente || item.cliente || 'GENERAL');
-        const state = estadoEtiquetasClientes[keyGroup] || {};
+        const keyComp = normalizarKeyComp(item.comprobante);
+        const state = estadoEtiquetasComprobantes[keyComp] || {};
         const fechaItem = normalizarFechaISO(item.fecha);
 
-        // 0. Filtro Automático Último Día / Pendientes
         if (autoFiltrarUltimoDia) {
           const esUltimoDia = (fechaItem === ultimaFechaGeneral);
           const noDespachado = !state.despachado;
           if (!esUltimoDia && !noDespachado) return false;
         }
 
-        // 1. Filtro Texto
         const coincideTexto = !texto || 
           (item.cliente && item.cliente.toLowerCase().includes(texto)) ||
           (item.docCliente && String(item.docCliente).includes(texto)) ||
           (item.producto && item.producto.toLowerCase().includes(texto)) ||
           (item.comprobante && String(item.comprobante).toLowerCase().includes(texto));
 
-        // 2. Filtro Etiquetas
         let coincideTag = true;
         if (tagSeleccionada === 'sinEtiqueta') {
           coincideTag = !state.proximoDespacho && !state.acumular && !state.delivery && !state.recojoLocal && !state.despachado;
@@ -364,12 +383,10 @@
           coincideTag = !!state[tagSeleccionada];
         }
 
-        // 3. Filtro Fechas Emisión Comprobante
         let coincideFecha = true;
         if (fechaDesde && fechaItem) coincideFecha = coincideFecha && (fechaItem >= fechaDesde);
         if (fechaHasta && fechaItem) coincideFecha = coincideFecha && (fechaItem <= fechaHasta);
 
-        // 4. Filtro Específico Fecha Próximo Despacho
         let coincideFechaDespacho = true;
         if (fechaDespachoFiltro) {
           const fDespState = normalizarFechaISO(state.fechaDespacho);
@@ -380,7 +397,7 @@
       });
 
       actualizarBarraProgreso(itemsFiltradosGlobal);
-      agruparPorCliente(itemsFiltradosGlobal);
+      agruparPorClienteYComprobante(itemsFiltradosGlobal);
     }
 
     function limpiarFiltros() {
@@ -393,115 +410,212 @@
       aplicarFiltros();
     }
 
-    function agruparPorCliente(data) {
-      const mapa = {};
+    function agruparPorClienteYComprobante(data) {
+      const mapaClientes = {};
 
       data.forEach(item => {
-        const keyRaw = item.docCliente || item.cliente || 'GENERAL';
-        const keyGroup = normalizarKey(keyRaw);
+        const keyClient = normalizarKeyClient(item.docCliente || item.cliente);
+        const keyComp = normalizarKeyComp(item.comprobante);
 
-        if (!mapa[keyGroup]) {
-          mapa[keyGroup] = {
-            keyGroup: keyGroup,
+        if (!mapaClientes[keyClient]) {
+          mapaClientes[keyClient] = {
+            keyClient: keyClient,
             docCliente: item.docCliente || 'S/D',
             cliente: item.cliente || 'CLIENTE GENERAL',
-            fechas: new Set(),
-            comprobantes: new Set(),
+            comprobantesMap: {}
+          };
+        }
+
+        if (!mapaClientes[keyClient].comprobantesMap[keyComp]) {
+          mapaClientes[keyClient].comprobantesMap[keyComp] = {
+            keyComp: keyComp,
+            comprobanteOriginal: item.comprobante || 'S/C',
+            fecha: item.fecha,
             importeTotal: 0,
             items: []
           };
         }
-        if (item.fecha) mapa[keyGroup].fechas.add(formatearDDMMAAAA(item.fecha));
-        if (item.comprobante) mapa[keyGroup].comprobantes.add(String(item.comprobante));
-        mapa[keyGroup].importeTotal += Number(item.importe || 0);
-        mapa[keyGroup].items.push(item);
+
+        mapaClientes[keyClient].comprobantesMap[keyComp].importeTotal += Number(item.importe || 0);
+        mapaClientes[keyClient].comprobantesMap[keyComp].items.push(item);
       });
 
-      renderizarListaClientes(Object.values(mapa));
+      const listaClientes = Object.values(mapaClientes).map(clienteObj => {
+        const comprobantesList = Object.values(clienteObj.comprobantesMap).map(compObj => {
+          const totalItemsComp = compObj.items.length;
+          const completadosComp = compObj.items.filter(i => Number(i.cantPickeada) >= Number(i.cantSolicitada)).length;
+          const stateComp = estadoEtiquetasComprobantes[compObj.keyComp] || {};
+
+          let prioridadComp = 1; // Pendiente
+          if (stateComp.despachado) {
+            prioridadComp = 3; // Despachado al final
+          } else if (totalItemsComp > 0 && totalItemsComp === completadosComp) {
+            prioridadComp = 2; // Completo
+          }
+
+          return {
+            ...compObj,
+            totalItems: totalItemsComp,
+            completados: completadosComp,
+            esCompleto: totalItemsComp > 0 && totalItemsComp === completadosComp,
+            esDespachado: !!stateComp.despachado,
+            prioridad: prioridadComp
+          };
+        });
+
+        // Ordenar Comprobantes: Pendientes (1) -> Completos (2) -> Despachados (3)
+        comprobantesList.sort((a, b) => a.prioridad - b.prioridad);
+
+        const totalItemsCli = comprobantesList.reduce((acc, c) => acc + c.totalItems, 0);
+        const completadosCli = comprobantesList.reduce((acc, c) => acc + c.completados, 0);
+        const esCliDespachado = comprobantesList.length > 0 && comprobantesList.every(c => c.esDespachado);
+        const esCliCompleto = totalItemsCli > 0 && totalItemsCli === completadosCli;
+
+        let prioridadCli = 1; // Pendiente
+        if (esCliDespachado) {
+          prioridadCli = 3; // Al último
+        } else if (esCliCompleto) {
+          prioridadCli = 2; // Al siguiente
+        }
+
+        return {
+          ...clienteObj,
+          comprobantes: comprobantesList,
+          totalItems: totalItemsCli,
+          completados: completadosCli,
+          esCompleto: esCliCompleto,
+          esDespachado: esCliDespachado,
+          prioridad: prioridadCli
+        };
+      });
+
+      // Ordenar Clientes: Pendientes (1) -> Completos (2) -> Despachados (3)
+      listaClientes.sort((a, b) => a.prioridad - b.prioridad);
+
+      renderizarListaJerarquica(listaClientes);
     }
 
-    function renderizarListaClientes(grupos) {
+    function renderizarListaJerarquica(clientes) {
       const container = document.getElementById('listaClientes');
       container.innerHTML = '';
 
-      if (grupos.length === 0) {
+      if (clientes.length === 0) {
         container.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-muted);">No hay resultados para el filtro actual.</div>';
         return;
       }
 
-      grupos.forEach((grupo) => {
-        const totalItems = grupo.items.length;
-        const completados = grupo.items.filter(i => Number(i.cantPickeada) >= Number(i.cantSolicitada)).length;
-        const clienteCompleto = totalItems > 0 && totalItems === completados;
-        const estaAbierto = acordeonesAbiertos.has(grupo.keyGroup);
-        const state = estadoEtiquetasClientes[grupo.keyGroup] || {};
+      clientes.forEach(cli => {
+        const clienteAbierto = acordeonesClientes.has(cli.keyClient);
 
-        const div = document.createElement('div');
-        div.className = `client-card ${clienteCompleto ? 'completo' : ''}`;
-        div.id = `card-group-${grupo.keyGroup}`;
+        let claseCardCli = '';
+        if (cli.esDespachado) claseCardCli = 'despachado';
+        else if (cli.esCompleto) claseCardCli = 'completo';
 
-        let htmlItems = '';
-        grupo.items.forEach(item => {
-          const esPicked = Number(item.cantPickeada) >= Number(item.cantSolicitada);
-          htmlItems += `
-            <div class="item-tap-card ${esPicked ? 'picked' : ''}" id="item-card-${item.fila}">
-              <div onclick="confirmarToqueItem(${item.fila}, '${item.producto.replace(/'/g, "\\'")}', ${item.cantSolicitada}, '${item.codigo}', '${grupo.keyGroup}')">
-                <div class="item-title" id="item-title-${item.fila}">${esPicked ? '✅' : '📦'} ${item.producto}</div>
-                <div class="item-sub-info">
-                  <span>CÓD: ${item.codigo || '—'}</span>
-                  <span>CANT: ${item.cantSolicitada} ${item.unidad || 'EA'}</span>
+        let htmlComprobantes = '';
+        cli.comprobantes.forEach(comp => {
+          const compAbierto = acordeonesComprobantes.has(comp.keyComp);
+          const stateComp = estadoEtiquetasComprobantes[comp.keyComp] || {};
+
+          let claseComp = '';
+          if (comp.esDespachado) claseComp = 'despachado';
+          else if (comp.esCompleto) claseComp = 'completo';
+
+          let htmlItems = '';
+          comp.items.forEach(item => {
+            const esPicked = Number(item.cantPickeada) >= Number(item.cantSolicitada);
+            htmlItems += `
+              <div class="item-tap-card ${esPicked ? 'picked' : ''}" id="item-card-${item.fila}">
+                <div onclick="confirmarToqueItem(${item.fila}, '${item.producto.replace(/'/g, "\\'")}', ${item.cantSolicitada}, '${item.codigo}', '${cli.keyClient}', '${comp.keyComp}')">
+                  <div class="item-title" id="item-title-${item.fila}">${esPicked ? '✅' : '📦'} ${item.producto}</div>
+                  <div class="item-sub-info">
+                    <span>CÓD: ${item.codigo || '—'}</span>
+                    <span>CANT: ${item.cantSolicitada} ${item.unidad || 'EA'}</span>
+                  </div>
                 </div>
               </div>
+            `;
+          });
+
+          let badgesCompHtml = '';
+          if (stateComp.proximoDespacho) badgesCompHtml += `<span class="tag-badge">📅 PRÓX. DESPACHO (${formatearDDMMAAAA(stateComp.fechaDespacho)})</span>`;
+          if (stateComp.acumular) badgesCompHtml += `<span class="tag-badge acumular">📦 ACUMULAR</span>`;
+          if (stateComp.delivery) badgesCompHtml += `<span class="tag-badge">🛵 DELIVERY</span>`;
+          if (stateComp.recojoLocal) badgesCompHtml += `<span class="tag-badge">🏪 RECOJO EN LOCAL</span>`;
+          if (stateComp.despachado) badgesCompHtml += `<span class="tag-badge despachado">🚀 DESPACHADO</span>`;
+
+          htmlComprobantes += `
+            <div class="comp-card ${claseComp}" id="card-comp-${comp.keyComp}">
+              <div class="comp-header" onclick="toggleAcordeonComprobante('${comp.keyComp}')">
+                <div>
+                  <div class="comp-title">📄 COMPROBANTE: ${comp.comprobanteOriginal} (${formatearDDMMAAAA(comp.fecha)})</div>
+                  <div class="client-meta">TOTAL: S/ ${comp.importeTotal.toFixed(2)} | PROGRESO: ${comp.completados}/${comp.totalItems} ÍTEMS</div>
+                  <div class="active-tags-header" style="margin-top:4px;">${badgesCompHtml}</div>
+                </div>
+                <div style="font-size:0.8em; color:var(--text-muted);">${compAbierto ? '▲' : '▼'}</div>
+              </div>
+
+              <div class="options-bar-bottom">
+                <button class="btn-option-tag ${stateComp.proximoDespacho ? 'active' : ''}" onclick="clickProximoDespacho('${comp.keyComp}')">📅 PRÓXIMO DESPACHO</button>
+                <button class="btn-option-tag acumular ${stateComp.acumular ? 'active' : ''}" onclick="toggleEtiquetaOption('${comp.keyComp}', 'acumular')">📦 ACUMULAR</button>
+                <button class="btn-option-tag ${stateComp.delivery ? 'active' : ''}" onclick="toggleEtiquetaOption('${comp.keyComp}', 'delivery')">🛵 DELIVERY</button>
+                <button class="btn-option-tag ${stateComp.recojoLocal ? 'active' : ''}" onclick="toggleEtiquetaOption('${comp.keyComp}', 'recojoLocal')">🏪 RECOJO EN LOCAL</button>
+                <button class="btn-option-tag despachado ${stateComp.despachado ? 'active' : ''}" onclick="toggleEtiquetaOption('${comp.keyComp}', 'despachado')">🚀 DESPACHADO</button>
+              </div>
+
+              <div class="items-container ${compAbierto ? 'active' : ''}" id="items-comp-${comp.keyComp}">${htmlItems}</div>
             </div>
           `;
         });
 
-        let badgesHtml = '';
-        if (state.proximoDespacho) badgesHtml += `<span class="tag-badge">📅 PRÓX. DESPACHO (${formatearDDMMAAAA(state.fechaDespacho)})</span>`;
-        if (state.acumular) badgesHtml += `<span class="tag-badge acumular">📦 ACUMULAR</span>`;
-        if (state.delivery) badgesHtml += `<span class="tag-badge">🛵 DELIVERY</span>`;
-        if (state.recojoLocal) badgesHtml += `<span class="tag-badge">🏪 RECOJO EN LOCAL</span>`;
-        if (state.despachado) badgesHtml += `<span class="tag-badge despachado">🚀 DESPACHADO</span>`;
+        const divClient = document.createElement('div');
+        divClient.className = `client-card ${claseCardCli}`;
+        divClient.id = `card-client-${cli.keyClient}`;
 
-        const arrComprobantes = Array.from(grupo.comprobantes).join(', ');
-        const arrFechas = Array.from(grupo.fechas).join(', ');
-
-        div.innerHTML = `
-          <div class="card-main">
+        divClient.innerHTML = `
+          <div class="card-main" onclick="toggleAcordeonCliente('${cli.keyClient}')">
             <div class="card-left">
-              <div class="icon-circle" id="client-icon-${grupo.keyGroup}" onclick="toggleAcordeon('${grupo.keyGroup}')">${clienteCompleto ? '✅' : '👤'}</div>
+              <div class="icon-circle">${cli.esDespachado ? '🚀' : (cli.esCompleto ? '✅' : '👤')}</div>
               <div style="width:100%;">
                 <div class="client-header-title">
-                  <span class="client-name" onclick="toggleAcordeon('${grupo.keyGroup}')">${grupo.cliente}</span>
-                  <div class="active-tags-header">${badgesHtml}</div>
+                  <span class="client-name">${cli.cliente}</span>
                 </div>
-                <div class="client-meta" onclick="toggleAcordeon('${grupo.keyGroup}')">DOC: ${grupo.docCliente} | FECHA COMPROBANTE: ${arrFechas}</div>
-                <div class="client-meta" onclick="toggleAcordeon('${grupo.keyGroup}')">COMP: ${arrComprobantes} (${grupo.comprobantes.size}) | TOTAL: S/ ${grupo.importeTotal.toFixed(2)}</div>
-                <div class="client-meta" id="progreso-text-${grupo.keyGroup}" style="color:var(--brand-orange);" onclick="toggleAcordeon('${grupo.keyGroup}')">PROGRESO: ${completados}/${totalItems} ÍTEMS</div>
-
-                <div class="options-bar-bottom">
-                  <button class="btn-option-tag ${state.proximoDespacho ? 'active' : ''}" onclick="clickProximoDespacho('${grupo.keyGroup}')">📅 PRÓXIMO DESPACHO</button>
-                  <button class="btn-option-tag acumular ${state.acumular ? 'active' : ''}" onclick="toggleEtiquetaOption('${grupo.keyGroup}', 'acumular')">📦 ACUMULAR</button>
-                  <button class="btn-option-tag ${state.delivery ? 'active' : ''}" onclick="toggleEtiquetaOption('${grupo.keyGroup}', 'delivery')">🛵 DELIVERY</button>
-                  <button class="btn-option-tag ${state.recojoLocal ? 'active' : ''}" onclick="toggleEtiquetaOption('${grupo.keyGroup}', 'recojoLocal')">🏪 RECOJO EN LOCAL</button>
-                  <button class="btn-option-tag despachado ${state.despachado ? 'active' : ''}" onclick="toggleEtiquetaOption('${grupo.keyGroup}', 'despachado')">🚀 DESPACHADO</button>
-                </div>
+                <div class="client-meta">DOC / DNI: ${cli.docCliente}</div>
+                <div class="client-meta" style="color:var(--brand-orange);">COMPROBANTES: ${cli.comprobantes.length} | PROGRESO CLIENTE: ${cli.completados}/${cli.totalItems} ÍTEMS</div>
               </div>
             </div>
-            <div style="font-size:0.8em; color:var(--text-muted); cursor:pointer;" id="icon-arrow-${grupo.keyGroup}" onclick="toggleAcordeon('${grupo.keyGroup}')">${estaAbierto ? '▲' : '▼'}</div>
+            <div style="font-size:0.8em; color:var(--text-muted);">${clienteAbierto ? '▲' : '▼'}</div>
           </div>
-          <div class="client-items-container ${estaAbierto ? 'active' : ''}" id="items-group-${grupo.keyGroup}">${htmlItems}</div>
+          <div class="comp-container ${clienteAbierto ? 'active' : ''}" id="comps-client-${cli.keyClient}">${htmlComprobantes}</div>
         `;
-        container.appendChild(div);
+
+        container.appendChild(divClient);
       });
     }
 
-    function clickProximoDespacho(keyGroup) {
-      const state = estadoEtiquetasClientes[keyGroup];
+    function toggleAcordeonCliente(keyClient) {
+      if (acordeonesClientes.has(keyClient)) {
+        acordeonesClientes.delete(keyClient);
+      } else {
+        acordeonesClientes.add(keyClient);
+      }
+      aplicarFiltros();
+    }
+
+    function toggleAcordeonComprobante(keyComp) {
+      if (acordeonesComprobantes.has(keyComp)) {
+        acordeonesComprobantes.delete(keyComp);
+      } else {
+        acordeonesComprobantes.add(keyComp);
+      }
+      aplicarFiltros();
+    }
+
+    function clickProximoDespacho(keyComp) {
+      const state = estadoEtiquetasComprobantes[keyComp];
       if (state.proximoDespacho) {
         state.proximoDespacho = false;
         state.fechaDespacho = "";
-        guardarEtiquetasEnBD(keyGroup);
+        guardarEtiquetasEnBD(keyComp);
       } else {
         const hoy = new Date().toISOString().split('T')[0];
         const bodyHtml = `<div>Selecciona la fecha programada para el envío:</div><input type="date" id="inputFechaDespacho" class="date-picker-modal" value="${state.fechaDespacho || hoy}">`;
@@ -511,24 +625,24 @@
             if (fechaVal) {
               state.proximoDespacho = true;
               state.fechaDespacho = fechaVal;
-              guardarEtiquetasEnBD(keyGroup);
+              guardarEtiquetasEnBD(keyComp);
             }
           }
         });
       }
     }
 
-    function toggleEtiquetaOption(keyGroup, keyTag) {
-      if (!estadoEtiquetasClientes[keyGroup]) return;
-      estadoEtiquetasClientes[keyGroup][keyTag] = !estadoEtiquetasClientes[keyGroup][keyTag];
-      guardarEtiquetasEnBD(keyGroup);
+    function toggleEtiquetaOption(keyComp, keyTag) {
+      if (!estadoEtiquetasComprobantes[keyComp]) return;
+      estadoEtiquetasComprobantes[keyComp][keyTag] = !estadoEtiquetasComprobantes[keyComp][keyTag];
+      guardarEtiquetasEnBD(keyComp);
     }
 
-    async function guardarEtiquetasEnBD(keyGroup) {
+    async function guardarEtiquetasEnBD(keyComp) {
       aplicarFiltros();
       mostrarToast("Sincronizando estado...");
 
-      const state = estadoEtiquetasClientes[keyGroup];
+      const state = estadoEtiquetasComprobantes[keyComp];
       const tagsActivas = [];
       if (state.proximoDespacho) tagsActivas.push("proximoDespacho");
       if (state.acumular) tagsActivas.push("acumular");
@@ -536,10 +650,10 @@
       if (state.recojoLocal) tagsActivas.push("recojoLocal");
       if (state.despachado) tagsActivas.push("despachado");
 
-      const itemsCliente = productosGlobales.filter(p => normalizarKey(p.docCliente || p.cliente || 'GENERAL') === keyGroup);
-      const comprobantesTarget = Array.from(new Set(itemsCliente.map(i => String(i.comprobante).trim().toUpperCase())));
+      const itemsComp = productosGlobales.filter(p => normalizarKeyComp(p.comprobante) === keyComp);
+      const comprobanteOriginal = itemsComp.length > 0 ? itemsComp[0].comprobante : "";
 
-      itemsCliente.forEach(i => {
+      itemsComp.forEach(i => {
         i.etiquetas = tagsActivas.join(",");
         i.fechaDespacho = state.fechaDespacho;
       });
@@ -548,8 +662,8 @@
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify({
-          accion: "GUARDAR_ETIQUETAS_CLIENTE",
-          comprobantes: comprobantesTarget,
+          accion: "GUARDAR_ETIQUETAS_COMPROBANTE",
+          comprobante: comprobanteOriginal,
           etiquetas: tagsActivas,
           fechaDespacho: state.fechaDespacho
         })
@@ -558,21 +672,7 @@
       mostrarToast("✓ GUARDADO EN GOOGLE SHEETS");
     }
 
-    function toggleAcordeon(keyGroup) {
-      const container = document.getElementById(`items-group-${keyGroup}`);
-      const arrow = document.getElementById(`icon-arrow-${keyGroup}`);
-      if (acordeonesAbiertos.has(keyGroup)) {
-        acordeonesAbiertos.delete(keyGroup);
-        if (container) container.classList.remove('active');
-        if (arrow) arrow.innerText = '▼';
-      } else {
-        acordeonesAbiertos.add(keyGroup);
-        if (container) container.classList.add('active');
-        if (arrow) arrow.innerText = '▲';
-      }
-    }
-
-    function confirmarToqueItem(fila, nombre, solicitada, codigo, keyGroup) {
+    function confirmarToqueItem(fila, nombre, solicitada, codigo, keyClient, keyComp) {
       const itemObj = productosGlobales.find(p => p.fila === fila);
       const yaPickeado = Number(itemObj.cantPickeada) >= Number(solicitada);
 
@@ -588,33 +688,7 @@
             if (data.status === 'ok') {
               itemObj.cantPickeada = data.nuevoPick;
               itemObj.estado = data.estado;
-              
-              const esPicked = Number(data.nuevoPick) >= Number(solicitada);
-              const cardElem = document.getElementById(`item-card-${fila}`);
-              const titleElem = document.getElementById(`item-title-${fila}`);
-              
-              if (cardElem) cardElem.classList.toggle('picked', esPicked);
-              if (titleElem) titleElem.innerHTML = `${esPicked ? '✅' : '📦'} ${itemObj.producto}`;
-
-              actualizarBarraProgreso(itemsFiltradosGlobal);
-              
-              const itemsCliente = productosGlobales.filter(p => normalizarKey(p.docCliente || p.cliente || 'GENERAL') === keyGroup);
-              const total = itemsCliente.length;
-              const comp = itemsCliente.filter(i => Number(i.cantPickeada) >= Number(i.cantSolicitada)).length;
-              
-              const progElem = document.getElementById(`progreso-text-${keyGroup}`);
-              const iconElem = document.getElementById(`client-icon-${keyGroup}`);
-              const cardGroup = document.getElementById(`card-group-${keyGroup}`);
-
-              if (progElem) progElem.innerText = `PROGRESO: ${comp}/${total} ÍTEMS`;
-              if (comp === total && total > 0) {
-                if (iconElem) iconElem.innerText = '✅';
-                if (cardGroup) cardGroup.classList.add('completo');
-              } else {
-                if (iconElem) iconElem.innerText = '👤';
-                if (cardGroup) cardGroup.classList.remove('completo');
-              }
-
+              aplicarFiltros();
               mostrarToast("✓ ESTADO ACTUALIZADO");
             }
           }
