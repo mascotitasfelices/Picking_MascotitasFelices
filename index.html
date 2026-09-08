@@ -363,7 +363,7 @@
     <div class="client-list" id="listaClientes">Cargando datos...</div>
   </div>
 
-  <!-- MODAL -->
+  <!-- MODAL PARA CONFIRMAR ITEM O INGRESAR FECHA -->
   <div class="modal-overlay" id="modalOverlay">
     <div class="modal-card">
       <div style="font-size:0.8em; font-weight:800; color:var(--brand-orange);" id="modalTag">CONFIRMAR PRODUCTO</div>
@@ -372,7 +372,7 @@
       
       <div class="modal-actions" id="modalActions">
         <button class="btn-modal btn-cancel" onclick="cerrarModal(false)">CANCELAR</button>
-        <button class="btn-modal btn-confirm" onclick="cerrarModal(true)">MARCAR PICKEADO</button>
+        <button class="btn-modal btn-confirm" id="btnModalConfirm" onclick="cerrarModal(true)">CONFIRMAR</button>
       </div>
     </div>
   </div>
@@ -780,40 +780,43 @@
               </div>
 
               <div class="options-bar-bottom">
-                <button class="btn-option-tag ${stateComp.proximoDespacho ? 'active' : ''}" onclick="clickProximoDespacho('${comp.keyComp}')">📅 PRÓXIMO DESPACHO</button>
-                <button class="btn-option-tag acumular ${stateComp.acumular ? 'active' : ''}" onclick="toggleEtiquetaOption('${comp.keyComp}', 'acumular')">📦 ACUMULAR</button>
-                <button class="btn-option-tag ${stateComp.delivery ? 'active' : ''}" onclick="toggleEtiquetaOption('${comp.keyComp}', 'delivery')">🛵 DELIVERY</button>
-                <button class="btn-option-tag ${stateComp.recojoLocal ? 'active' : ''}" onclick="toggleEtiquetaOption('${comp.keyComp}', 'recojoLocal')">🏪 RECOJO EN LOCAL</button>
-                <button class="btn-option-tag despachado ${stateComp.despachado ? 'active' : ''}" onclick="toggleEtiquetaOption('${comp.keyComp}', 'despachado')">🚀 DESPACHADO</button>
+                <button class="btn-option-tag ${stateComp.proximoDespacho ? 'active' : ''}" onclick="toggleTag('${comp.keyComp}', 'proximoDespacho')">📅 Próx. Despacho</button>
+                <button class="btn-option-tag ${stateComp.acumular ? 'active acumular' : ''}" onclick="toggleTag('${comp.keyComp}', 'acumular')">📦 Acumular</button>
+                <button class="btn-option-tag ${stateComp.delivery ? 'active' : ''}" onclick="toggleTag('${comp.keyComp}', 'delivery')">🛵 Delivery</button>
+                <button class="btn-option-tag ${stateComp.recojoLocal ? 'active' : ''}" onclick="toggleTag('${comp.keyComp}', 'recojoLocal')">🏪 Recojo Local</button>
+                <button class="btn-option-tag ${stateComp.despachado ? 'active despachado' : ''}" onclick="toggleTag('${comp.keyComp}', 'despachado')">🚀 Despachado</button>
               </div>
 
-              <div class="items-container ${compAbierto ? 'active' : ''}" id="items-comp-${comp.keyComp}">${htmlItems}</div>
+              <div class="items-container ${compAbierto ? 'active' : ''}" id="container-items-${comp.keyComp}">
+                ${htmlItems}
+              </div>
             </div>
           `;
         });
 
-        const divClient = document.createElement('div');
-        divClient.className = `client-card ${claseCardCli}`;
-        divClient.id = `card-client-${cli.keyClient}`;
-
-        divClient.innerHTML = `
+        const cliCard = document.createElement('div');
+        cliCard.className = `client-card ${claseCardCli}`;
+        cliCard.id = `card-client-${cli.keyClient}`;
+        cliCard.innerHTML = `
           <div class="card-main" onclick="toggleAcordeonCliente('${cli.keyClient}')">
             <div class="card-left">
-              <div class="icon-circle">${cli.esDespachado ? '🚀' : (cli.esCompleto ? '✅' : '👤')}</div>
-              <div style="width:100%;">
+              <div class="icon-circle">👤</div>
+              <div style="flex:1;">
                 <div class="client-header-title">
                   <span class="client-name">${cli.cliente}</span>
+                  <span style="font-size:0.75em; color:var(--text-muted);">(${cli.docCliente})</span>
                 </div>
-                <div class="client-meta">DOC / DNI: ${cli.docCliente}</div>
-                <div class="client-meta" style="color:var(--brand-orange);">COMPROBANTES: ${cli.comprobantes.length} | PROGRESO CLIENTE: ${cli.completados}/${cli.totalItems} ÍTEMS</div>
+                <div class="client-meta">COMPROBANTES: ${cli.comprobantes.length} | PROGRESO: ${cli.completados}/${cli.totalItems} ÍTEMS</div>
               </div>
             </div>
-            <div style="font-size:0.8em; color:var(--text-muted);">${clienteAbierto ? '▲' : '▼'}</div>
+            <div style="font-size:0.8em; color:var(--text-muted); align-self:center;">${clienteAbierto ? '▲' : '▼'}</div>
           </div>
-          <div class="comp-container ${clienteAbierto ? 'active' : ''}" id="comps-client-${cli.keyClient}">${htmlComprobantes}</div>
-        `;
 
-        container.appendChild(divClient);
+          <div class="comp-container ${clienteAbierto ? 'active' : ''}" id="container-comp-${cli.keyClient}">
+            ${htmlComprobantes}
+          </div>
+        `;
+        container.appendChild(cliCard);
       });
     }
 
@@ -823,7 +826,8 @@
       } else {
         acordeonesClientes.add(keyClient);
       }
-      aplicarFiltros();
+      const el = document.getElementById(`container-comp-${keyClient}`);
+      if (el) el.classList.toggle('active');
     }
 
     function toggleAcordeonComprobante(keyComp) {
@@ -832,113 +836,155 @@
       } else {
         acordeonesComprobantes.add(keyComp);
       }
-      aplicarFiltros();
+      const el = document.getElementById(`container-items-${keyComp}`);
+      if (el) el.classList.toggle('active');
     }
 
-    function clickProximoDespacho(keyComp) {
-      const state = estadoEtiquetasComprobantes[keyComp];
-      if (state.proximoDespacho) {
-        state.proximoDespacho = false;
-        state.fechaDespacho = "";
-        guardarEtiquetasEnBD(keyComp);
-      } else {
-        const hoy = new Date().toISOString().split('T')[0];
-        const bodyHtml = `<div>Selecciona la fecha programada para el envío:</div><input type="date" id="inputFechaDespacho" class="date-picker-modal" value="${state.fechaDespacho || hoy}">`;
-        abrirModal("PROGRAMAR DESPACHO", "FECHA DE PRÓXIMO ENVÍO", bodyHtml, true, async (conf) => {
-          if (conf) {
-            const fechaVal = document.getElementById('inputFechaDespacho').value;
-            if (fechaVal) {
-              state.proximoDespacho = true;
-              state.fechaDespacho = fechaVal;
-              guardarEtiquetasEnBD(keyComp);
-            }
-          }
-        });
-      }
-    }
+    function confirmarToqueItem(fila, nombreProd, cantReq, codigo, keyClient, keyComp) {
+      const item = productosGlobales.find(p => p.fila === fila);
+      if (!item) return;
 
-    function toggleEtiquetaOption(keyComp, keyTag) {
-      if (!estadoEtiquetasComprobantes[keyComp]) return;
-      estadoEtiquetasComprobantes[keyComp][keyTag] = !estadoEtiquetasComprobantes[keyComp][keyTag];
-      guardarEtiquetasEnBD(keyComp);
-    }
+      const esPickedActualmente = Number(item.cantPickeada) >= Number(item.cantSolicitada);
+      const nuevaCant = esPickedActualmente ? 0 : cantReq;
 
-    async function guardarEtiquetasEnBD(keyComp) {
-      aplicarFiltros();
-      mostrarToast("Sincronizando estado...");
+      document.getElementById('modalTag').innerText = esPickedActualmente ? "DESMARCAR PRODUCTO" : "MARCAR PRODUCTO";
+      document.getElementById('modalProductName').innerText = nombreProd;
+      document.getElementById('modalProductMeta').innerHTML = `
+        <b>CÓDIGO:</b> ${codigo || '—'}<br>
+        <b>CANTIDAD:</b> ${cantReq} ${item.unidad || 'EA'}<br>
+        <b>ACCIÓN:</b> ${esPickedActualmente ? 'Marcar como PENDIENTE' : 'Marcar como PICKEADO'}
+      `;
 
-      const state = estadoEtiquetasComprobantes[keyComp];
-      const tagsActivas = [];
-      if (state.proximoDespacho) tagsActivas.push("proximoDespacho");
-      if (state.acumular) tagsActivas.push("acumular");
-      if (state.delivery) tagsActivas.push("delivery");
-      if (state.recojoLocal) tagsActivas.push("recojoLocal");
-      if (state.despachado) tagsActivas.push("despachado");
+      document.getElementById('btnModalConfirm').innerText = esPickedActualmente ? "DESMARCAR" : "CONFIRMAR PICKEADO";
 
-      const itemsComp = productosGlobales.filter(p => normalizarKeyComp(p.comprobante) === keyComp);
-      const comprobanteOriginal = itemsComp.length > 0 ? itemsComp[0].comprobante : "";
-
-      itemsComp.forEach(i => {
-        i.etiquetas = tagsActivas.join(",");
-        i.fechaDespacho = state.fechaDespacho;
-      });
-
-      await fetch(URL_API, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({
-          accion: "GUARDAR_ETIQUETAS_COMPROBANTE",
-          comprobante: comprobanteOriginal,
-          etiquetas: tagsActivas,
-          fechaDespacho: state.fechaDespacho
-        })
-      });
-
-      mostrarToast("✓ GUARDADO EN GOOGLE SHEETS");
-    }
-
-    function confirmarToqueItem(fila, nombre, solicitada, codigo, keyClient, keyComp) {
-      const itemObj = productosGlobales.find(p => p.fila === fila);
-      const yaPickeado = Number(itemObj.cantPickeada) >= Number(solicitada);
-
-      abrirModal(
-        "CONFIRMAR PRODUCTO EN MANO",
-        nombre,
-        `Código Item: <b>${codigo}</b><br>Cantidad Requerida: <b>${solicitada}</b><br><br>${yaPickeado ? '¿Desmarcar producto?' : '¿Confirmar producto recolectado?'}`,
-        true,
-        async (conf) => {
-          if (conf) {
-            const res = await fetch(URL_API, { method: 'POST', body: JSON.stringify({ accion: "TOGGLE_PICKING", fila: fila }) });
-            const data = await res.json();
-            if (data.status === 'ok') {
-              itemObj.cantPickeada = data.nuevoPick;
-              itemObj.estado = data.estado;
-              aplicarFiltros();
-              mostrarToast("✓ ESTADO ACTUALIZADO");
-            }
+      accionPendiente = async () => {
+        item.cantPickeada = nuevaCant;
+        
+        // Actualización Visual Inmediata
+        const cardElem = document.getElementById(`item-card-${fila}`);
+        const titleElem = document.getElementById(`item-title-${fila}`);
+        if (cardElem && titleElem) {
+          if (nuevaCant >= cantReq) {
+            cardElem.classList.add('picked');
+            titleElem.innerText = `✅ ${nombreProd}`;
+          } else {
+            cardElem.classList.remove('picked');
+            titleElem.innerText = `📦 ${nombreProd}`;
           }
         }
-      );
+
+        actualizarBarraProgreso(itemsFiltradosGlobal);
+        agruparPorClienteYComprobante(itemsFiltradosGlobal);
+
+        // Envío en segundo plano
+        try {
+          await fetch(URL_API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify({
+              accion: "ACTUALIZAR_CANTIDAD",
+              fila: fila,
+              cantPickeada: nuevaCant
+            })
+          });
+          mostrarToast("✓ ESTADO ACTUALIZADO");
+        } catch (e) {
+          console.error(e);
+          mostrarToast("⚠️ ERROR DE CONEXIÓN AL GUARDAR");
+        }
+      };
+
+      document.getElementById('modalOverlay').classList.add('active');
     }
 
-    function abrirModal(tag, nombre, meta, conBotones = true, callback = null) {
-      document.getElementById('modalTag').innerText = tag;
-      document.getElementById('modalProductName').innerText = nombre;
-      document.getElementById('modalProductMeta').innerHTML = meta;
-      document.getElementById('modalOverlay').classList.add('active');
-      accionPendiente = callback;
+    async function toggleTag(keyComp, tagNombre) {
+      if (!estadoEtiquetasComprobantes[keyComp]) {
+        estadoEtiquetasComprobantes[keyComp] = { proximoDespacho: false, fechaDespacho: "", acumular: false, delivery: false, recojoLocal: false, despachado: false };
+      }
+
+      const current = estadoEtiquetasComprobantes[keyComp];
+
+      if (tagNombre === 'proximoDespacho') {
+        if (!current.proximoDespacho) {
+          // Solicitar fecha de despacho mediante el modal
+          document.getElementById('modalTag').innerText = "PROGRAMAR DESPACHO";
+          document.getElementById('modalProductName').innerText = "Seleccione Fecha de Despacho";
+          document.getElementById('modalProductMeta').innerHTML = `
+            <input type="date" id="inputFechaDespachoModal" class="date-picker-modal" value="${new Date().toISOString().split('T')[0]}">
+          `;
+          document.getElementById('btnModalConfirm').innerText = "GUARDAR FECHA";
+
+          accionPendiente = () => {
+            const fechaInput = document.getElementById('inputFechaDespachoModal').value;
+            if (!fechaInput) return;
+            current.proximoDespacho = true;
+            current.fechaDespacho = fechaInput;
+            guardarEstadoEtiquetas(keyComp);
+          };
+
+          document.getElementById('modalOverlay').classList.add('active');
+          return;
+        } else {
+          current.proximoDespacho = false;
+          current.fechaDespacho = "";
+        }
+      } else {
+        current[tagNombre] = !current[tagNombre];
+      }
+
+      guardarEstadoEtiquetas(keyComp);
+    }
+
+    async function guardarEstadoEtiquetas(keyComp) {
+      const state = estadoEtiquetasComprobantes[keyComp];
+      
+      const tagsArray = [];
+      if (state.proximoDespacho) tagsArray.push("proximoDespacho");
+      if (state.acumular) tagsArray.push("acumular");
+      if (state.delivery) tagsArray.push("delivery");
+      if (state.recojoLocal) tagsArray.push("recojoLocal");
+      if (state.despachado) tagsArray.push("despachado");
+
+      const etiquetasString = tagsArray.join(",");
+      const fechaDespachoString = state.fechaDespacho || "";
+
+      // Actualizar visualmente la interfaz
+      aplicarFiltros();
+
+      try {
+        mostrarToast("💾 Guardando etiquetas...");
+        await fetch(URL_API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({
+            accion: "ACTUALIZAR_ETIQUETAS_COMPROBANTE",
+            comprobanteKey: keyComp,
+            etiquetas: etiquetasString,
+            fechaDespacho: fechaDespachoString
+          })
+        });
+        mostrarToast("✓ ETIQUETAS GUARDADAS");
+      } catch (e) {
+        console.error(e);
+        mostrarToast("⚠️ ERROR AL GUARDAR ETIQUETAS");
+      }
     }
 
     function cerrarModal(confirmado) {
       document.getElementById('modalOverlay').classList.remove('active');
-      if (accionPendiente) { accionPendiente(confirmado); accionPendiente = null; }
+      if (confirmado && typeof accionPendiente === 'function') {
+        accionPendiente();
+      }
+      accionPendiente = null;
     }
 
-    function mostrarToast(txt = "✓ REGISTRADO") {
+    function mostrarToast(mensaje) {
       const toast = document.getElementById('toastNotification');
-      toast.innerText = txt;
+      toast.innerText = mensaje;
       toast.classList.add('show');
-      setTimeout(() => { toast.classList.remove('show'); }, 2000);
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2000);
     }
   </script>
 </body>
