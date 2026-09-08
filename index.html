@@ -906,7 +906,6 @@
 
       if (tagNombre === 'proximoDespacho') {
         if (!current.proximoDespacho) {
-          // Solicitar fecha de despacho mediante el modal
           document.getElementById('modalTag').innerText = "PROGRAMAR DESPACHO";
           document.getElementById('modalProductName').innerText = "Seleccione Fecha de Despacho";
           document.getElementById('modalProductMeta').innerHTML = `
@@ -948,7 +947,6 @@
       const etiquetasString = tagsArray.join(",");
       const fechaDespachoString = state.fechaDespacho || "";
 
-      // Actualizar visualmente la interfaz
       aplicarFiltros();
 
       try {
