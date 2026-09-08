@@ -333,7 +333,7 @@
           const worksheet = workbook.Sheets[firstSheetName];
           const jsonFilas = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-          if (jsonFilas.length <= 1) {
+          if (jsonFilas.length === 0) {
             alert("El archivo Excel no contiene filas de datos.");
             return;
           }
@@ -345,7 +345,7 @@
             headers: { 'Content-Type': 'text/plain' },
             body: JSON.stringify({
               accion: "AGREGAR_EXCEL",
-              filas: jsonFilas.slice(1)
+              filas: jsonFilas
             })
           });
 
@@ -383,7 +383,7 @@
         if (parts.length === 3) return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
       }
 
-      if (str.length > 10) {
+      if (str.length > 10 || str.includes("GMT")) {
         const d = new Date(str);
         if (!isNaN(d.getTime())) {
           const yyyy = d.getFullYear();
