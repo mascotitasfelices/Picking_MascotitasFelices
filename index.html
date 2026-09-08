@@ -125,7 +125,6 @@
 
   <div class="client-list" id="listaClientes">Cargando lista de clientes...</div>
 
-  <!-- Modal Confirmación con Descripción en Grande -->
   <div class="modal-overlay" id="modalOverlay">
     <div class="modal-card">
       <div style="font-size:0.8em; font-weight:800; color:var(--brand-orange);">CONFIRMAR PRODUCTO EN MANO</div>
@@ -145,6 +144,7 @@
 
     let productosGlobales = [];
     let accionPendiente = null;
+    let acordeonesAbiertos = new Set();
 
     async function cargarDatos() {
       try {
@@ -174,6 +174,7 @@
         const key = item.docCliente || item.cliente || 'GENERAL';
         if (!mapa[key]) {
           mapa[key] = {
+            keyGroup: key,
             docCliente: item.docCliente || 'S/D',
             cliente: item.cliente || 'CLIENTE GENERAL',
             fechas: new Set(),
@@ -182,7 +183,11 @@
             items: []
           };
         }
-        if (item.fecha) mapa[key].fechas.add(String(item.fecha));
+        if (item.fecha) {
+          let f = String(item.fecha);
+          if (f.includes("T")) f = f.split("T")[0];
+          mapa[key].fechas.add(f);
+        }
         if (item.comprobante) mapa[key].comprobantes.add(String(item.comprobante));
         mapa[key].importeTotal += Number(item.importe || 0);
         mapa[key].items.push(item);
@@ -200,13 +205,15 @@
         return;
       }
 
-      grupos.forEach((grupo, gIndex) => {
+      grupos.forEach((grupo) => {
         const totalItems = grupo.items.length;
         const completados = grupo.items.filter(i => Number(i.cantPickeada) >= Number(i.cantSolicitada)).length;
         const clienteCompleto = totalItems > 0 && totalItems === completados;
+        const estaAbierto = acordeonesAbiertos.has(grupo.keyGroup);
 
         const div = document.createElement('div');
         div.className = `client-card ${clienteCompleto ? 'completo' : ''}`;
+        div.id = `card-group-${grupo.keyGroup}`;
 
         let htmlItems = '';
         grupo.items.forEach(item => {
@@ -215,9 +222,9 @@
           const tieneObservacion = item.observacion === true || item.observacion === "TRUE";
 
           htmlItems += `
-            <div class="item-tap-card ${esPicked ? 'picked' : ''}">
-              <div onclick="confirmarToqueItem(${item.fila}, '${item.producto.replace(/'/g, "\\'")}', ${item.cantSolicitada}, '${item.codigo}')">
-                <div class="item-title">${esPicked ? '✅' : '📦'} ${item.producto}</div>
+            <div class="item-tap-card ${esPicked ? 'picked' : ''}" id="item-card-${item.fila}">
+              <div onclick="confirmarToqueItem(${item.fila}, '${item.producto.replace(/'/g, "\\'")}', ${item.cantSolicitada}, '${item.codigo}', '${grupo.keyGroup}')">
+                <div class="item-title" id="item-title-${item.fila}">${esPicked ? '✅' : '📦'} ${item.producto}</div>
                 <div class="item-sub-info">
                   <span>CÓD: ${item.codigo || '—'}</span>
                   <span>CANT: ${item.cantSolicitada} ${item.unidad || 'EA'}</span>
@@ -242,20 +249,20 @@
         const arrFechas = Array.from(grupo.fechas).join(', ');
 
         div.innerHTML = `
-          <div class="card-main" onclick="toggleAcordeon(${gIndex})">
+          <div class="card-main" onclick="toggleAcordeon('${grupo.keyGroup}')">
             <div class="card-left">
-              <div class="icon-circle">${clienteCompleto ? '✅' : '👤'}</div>
+              <div class="icon-circle" id="client-icon-${grupo.keyGroup}">${clienteCompleto ? '✅' : '👤'}</div>
               <div>
                 <div class="client-name">${grupo.cliente}</div>
                 <div class="client-meta">DOC: ${grupo.docCliente} | FECHA: ${arrFechas}</div>
                 <div class="client-meta">COMP: ${arrComprobantes} (${grupo.comprobantes.size}) | TOTAL: S/ ${grupo.importeTotal.toFixed(2)}</div>
-                <div class="client-meta" style="color:var(--brand-orange);">PROGRESO: ${completados}/${totalItems} ÍTEMS</div>
+                <div class="client-meta" id="progreso-text-${grupo.keyGroup}" style="color:var(--brand-orange);">PROGRESO: ${completados}/${totalItems} ÍTEMS</div>
               </div>
             </div>
-            <div style="font-size:0.8em; color:var(--text-muted);" id="icon-group-${gIndex}">▼</div>
+            <div style="font-size:0.8em; color:var(--text-muted);" id="icon-arrow-${grupo.keyGroup}">${estaAbierto ? '▲' : '▼'}</div>
           </div>
 
-          <div class="client-items-container" id="items-group-${gIndex}">
+          <div class="client-items-container ${estaAbierto ? 'active' : ''}" id="items-group-${grupo.keyGroup}">
             ${htmlItems}
           </div>
         `;
@@ -263,11 +270,21 @@
       });
     }
 
-    function toggleAcordeon(gIndex) {
-      document.getElementById(`items-group-${gIndex}`).classList.toggle('active');
+    function toggleAcordeon(keyGroup) {
+      const container = document.getElementById(`items-group-${keyGroup}`);
+      const arrow = document.getElementById(`icon-arrow-${keyGroup}`);
+      if (acordeonesAbiertos.has(keyGroup)) {
+        acordeonesAbiertos.delete(keyGroup);
+        if (container) container.classList.remove('active');
+        if (arrow) arrow.innerText = '▼';
+      } else {
+        acordeonesAbiertos.add(keyGroup);
+        if (container) container.classList.add('active');
+        if (arrow) arrow.innerText = '▲';
+      }
     }
 
-    function confirmarToqueItem(fila, nombre, solicitada, codigo) {
+    function confirmarToqueItem(fila, nombre, solicitada, codigo, keyGroup) {
       const itemObj = productosGlobales.find(p => p.fila === fila);
       const yaPickeado = Number(itemObj.cantPickeada) >= Number(solicitada);
 
@@ -281,8 +298,38 @@
             if (data.status === 'ok') {
               itemObj.cantPickeada = data.nuevoPick;
               itemObj.estado = data.estado;
+              
+              const esPicked = Number(data.nuevoPick) >= Number(solicitada);
+              const cardElem = document.getElementById(`item-card-${fila}`);
+              const titleElem = document.getElementById(`item-title-${fila}`);
+              
+              if (cardElem) {
+                if (esPicked) cardElem.classList.add('picked');
+                else cardElem.classList.remove('picked');
+              }
+              if (titleElem) {
+                titleElem.innerHTML = `${esPicked ? '✅' : '📦'} ${itemObj.producto}`;
+              }
+
               actualizarBarraProgreso();
-              agruparPorCliente(productosGlobales);
+              
+              const itemsCliente = productosGlobales.filter(p => (p.docCliente || p.cliente || 'GENERAL') === keyGroup);
+              const total = itemsCliente.length;
+              const comp = itemsCliente.filter(i => Number(i.cantPickeada) >= Number(i.cantSolicitada)).length;
+              
+              const progElem = document.getElementById(`progreso-text-${keyGroup}`);
+              const iconElem = document.getElementById(`client-icon-${keyGroup}`);
+              const cardGroup = document.getElementById(`card-group-${keyGroup}`);
+
+              if (progElem) progElem.innerText = `PROGRESO: ${comp}/${total} ÍTEMS`;
+              if (comp === total && total > 0) {
+                if (iconElem) iconElem.innerText = '✅';
+                if (cardGroup) cardGroup.classList.add('completo');
+              } else {
+                if (iconElem) iconElem.innerText = '👤';
+                if (cardGroup) cardGroup.classList.remove('completo');
+              }
+
               mostrarToast("✓ ESTADO ACTUALIZADO");
             }
           }
@@ -318,19 +365,36 @@
       const workbook = XLSX.read(data, { type: 'array' });
       const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
 
-      const rows = rawData.map(r => [
-        r['FECHA'] || '',
-        r['DOC CLIENTE'] || 'S/D',
-        r['CLIENTE'] || 'CLIENTE GENERAL',
-        `${r['SERIE'] || ''}-${r['NUMERO'] || ''}`,
-        r['CODIGO ITEM'] || 'S/C',
-        r['DESCRIPCION'] || 'SIN DESCRIPCION',
-        r['CATEGORIA'] || 'GENERAL',
-        r['UNIDAD MEDIDA'] || 'EA',
-        r['CANTIDAD'] || 0,
-        r['IMPORTE'] || 0,
-        0, false, false, "PENDIENTE"
-      ]);
+      const vistasUnicas = new Set();
+      const rows = [];
+
+      rawData.forEach(r => {
+        const cantidad = Number(r['CANTIDAD'] || 0);
+        if (cantidad <= 0) return;
+
+        const serie = r['SERIE'] || '';
+        const numero = r['NUMERO'] || '';
+        const codigo = r['CODIGO ITEM'] || '';
+        const comprobante = `${serie}-${numero}`;
+
+        const claveUnica = `${comprobante}_${codigo}`;
+        if (vistasUnicas.has(claveUnica)) return;
+        vistasUnicas.add(claveUnica);
+
+        rows.push([
+          r['FECHA'] || '',
+          r['DOC CLIENTE'] || 'S/D',
+          r['CLIENTE'] || 'CLIENTE GENERAL',
+          comprobante,
+          codigo || 'S/C',
+          r['DESCRIPCION'] || 'SIN DESCRIPCION',
+          r['CATEGORIA'] || 'GENERAL',
+          r['UNIDAD MEDIDA'] || 'EA',
+          cantidad,
+          r['IMPORTE'] || 0,
+          0, false, false, "PENDIENTE"
+        ]);
+      });
 
       await fetch(URL_API, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ rows: rows }) });
       mostrarToast("¡Carga completa!");
