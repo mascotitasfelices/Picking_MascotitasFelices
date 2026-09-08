@@ -63,9 +63,23 @@
     .client-card.completo { background-color: var(--status-completed-bg) !important; border: 1.5px solid var(--status-completed-border); }
 
     .card-main { display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
-    .card-left { display: flex; align-items: center; gap: 12px; }
-    .icon-circle { width: 42px; height: 42px; border-radius: 12px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 1.1em; }
+    .card-left { display: flex; align-items: center; gap: 12px; width: 100%; }
+    .icon-circle { width: 42px; height: 42px; border-radius: 12px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 1.1em; flex-shrink: 0; }
+    
+    .client-header-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .client-name { font-weight: 800; font-size: 0.95em; color: var(--text-dark); text-transform: uppercase; }
+    
+    /* Nueva sección de etiquetas al lado del nombre */
+    .tags-container { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .tag-btn {
+      font-size: 0.68em; font-weight: 700; padding: 4px 8px; border-radius: 8px; border: 1px solid #cbd5e1;
+      background: #f8fafc; color: #475569; cursor: pointer; user-select: none; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 4px;
+    }
+    .tag-btn.active { background: #0284c7; color: white; border-color: #0369a1; }
+    .tag-btn.active.despachado { background: #16a34a; border-color: #15803d; }
+    .tag-btn.active.acumular { background: #d97706; border-color: #b45309; }
+    .tag-date-input { font-size: 0.75em; padding: 2px 4px; border-radius: 6px; border: 1px solid #0284c7; outline: none; }
+
     .client-meta { font-size: 0.75em; color: var(--text-muted); margin-top: 2px; font-weight: 600; }
 
     .client-items-container { display: none; margin-top: 14px; padding-top: 12px; border-top: 1px solid #cbd5e1; flex-direction: column; gap: 10px; }
@@ -78,9 +92,6 @@
 
     .item-title { font-weight: 800; font-size: 0.9em; color: var(--primary-dark); text-transform: uppercase; margin-bottom: 4px; }
     .item-sub-info { display: flex; justify-content: space-between; font-size: 0.8em; font-weight: 700; color: var(--text-muted); }
-
-    .checkboxes-wrapper { display: flex; gap: 16px; margin-top: 8px; border-top: 1px dashed #cbd5e1; padding-top: 6px; }
-    .checkbox-action { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 0.8em; }
 
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(4px); }
     .modal-overlay.active { display: flex; }
@@ -156,6 +167,7 @@
     let productosGlobales = [];
     let accionPendiente = null;
     let acordeonesAbiertos = new Set();
+    let estadoEtiquetasClientes = {}; // Guarda localmente el estado de las etiquetas por cliente
 
     function normalizarKey(val) {
       return String(val || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
@@ -228,6 +240,18 @@
         const clienteCompleto = totalItems > 0 && totalItems === completados;
         const estaAbierto = acordeonesAbiertos.has(grupo.keyGroup);
 
+        if (!estadoEtiquetasClientes[grupo.keyGroup]) {
+          estadoEtiquetasClientes[grupo.keyGroup] = {
+            proximoDespacho: false,
+            fechaDespacho: '',
+            acumular: false,
+            delivery: false,
+            recojoLocal: false,
+            despachado: false
+          };
+        }
+        const state = estadoEtiquetasClientes[grupo.keyGroup];
+
         const div = document.createElement('div');
         div.className = `client-card ${clienteCompleto ? 'completo' : ''}`;
         div.id = `card-group-${grupo.keyGroup}`;
@@ -235,8 +259,6 @@
         let htmlItems = '';
         grupo.items.forEach(item => {
           const esPicked = Number(item.cantPickeada) >= Number(item.cantSolicitada);
-          const verificadoEmpacado = item.manojo === true || item.manojo === "TRUE";
-          const tieneObservacion = item.observacion === true || item.observacion === "TRUE";
 
           htmlItems += `
             <div class="item-tap-card ${esPicked ? 'picked' : ''}" id="item-card-${item.fila}">
@@ -247,17 +269,6 @@
                   <span>CANT: ${item.cantSolicitada} ${item.unidad || 'EA'}</span>
                 </div>
               </div>
-
-              <div class="checkboxes-wrapper" onclick="event.stopPropagation()">
-                <div class="checkbox-action">
-                  <input type="checkbox" ${verificadoEmpacado ? 'checked' : ''} onclick="cambiarEstadoEmpaque(this, ${item.fila})">
-                  <span>EMPACADO</span>
-                </div>
-                <div class="checkbox-action">
-                  <input type="checkbox" ${tieneObservacion ? 'checked' : ''} onclick="cambiarEstadoObs(this, ${item.fila})">
-                  <span>OBSERVACIÓN</span>
-                </div>
-              </div>
             </div>
           `;
         });
@@ -266,17 +277,45 @@
         const arrFechas = Array.from(grupo.fechas).join(', ');
 
         div.innerHTML = `
-          <div class="card-main" onclick="toggleAcordeon('${grupo.keyGroup}')">
-            <div class="card-left">
+          <div class="card-main">
+            <div class="card-left" onclick="toggleAcordeon('${grupo.keyGroup}')">
               <div class="icon-circle" id="client-icon-${grupo.keyGroup}">${clienteCompleto ? '✅' : '👤'}</div>
-              <div>
-                <div class="client-name">${grupo.cliente}</div>
+              <div style="width:100%;">
+                <div class="client-header-title">
+                  <span class="client-name">${grupo.cliente}</span>
+                  
+                  <div class="tags-container" onclick="event.stopPropagation()">
+                    <button class="tag-btn ${state.proximoDespacho ? 'active' : ''}" onclick="toggleEtiqueta('${grupo.keyGroup}', 'proximoDespacho')">
+                      📅 PRÓXIMO DESPACHO
+                    </button>
+                    ${state.proximoDespacho ? `
+                      <input type="date" class="tag-date-input" value="${state.fechaDespacho}" onchange="guardarFechaDespacho('${grupo.keyGroup}', this.value)">
+                    ` : ''}
+
+                    <button class="tag-btn acumular ${state.acumular ? 'active' : ''}" onclick="toggleEtiqueta('${grupo.keyGroup}', 'acumular')">
+                      📦 ACUMULAR
+                    </button>
+
+                    <button class="tag-btn ${state.delivery ? 'active' : ''}" onclick="toggleEtiqueta('${grupo.keyGroup}', 'delivery')">
+                      🛵 DELIVERY
+                    </button>
+
+                    <button class="tag-btn ${state.recojoLocal ? 'active' : ''}" onclick="toggleEtiqueta('${grupo.keyGroup}', 'recojoLocal')">
+                      🏪 RECOJO EN LOCAL
+                    </button>
+
+                    <button class="tag-btn despachado ${state.despachado ? 'active' : ''}" onclick="toggleEtiqueta('${grupo.keyGroup}', 'despachado')">
+                      🚀 DESPACHADO
+                    </button>
+                  </div>
+                </div>
+
                 <div class="client-meta">DOC: ${grupo.docCliente} | FECHA: ${arrFechas}</div>
                 <div class="client-meta">COMP: ${arrComprobantes} (${grupo.comprobantes.size}) | TOTAL: S/ ${grupo.importeTotal.toFixed(2)}</div>
                 <div class="client-meta" id="progreso-text-${grupo.keyGroup}" style="color:var(--brand-orange);">PROGRESO: ${completados}/${totalItems} ÍTEMS</div>
               </div>
             </div>
-            <div style="font-size:0.8em; color:var(--text-muted);" id="icon-arrow-${grupo.keyGroup}">${estaAbierto ? '▲' : '▼'}</div>
+            <div style="font-size:0.8em; color:var(--text-muted); padding-left:8px;" id="icon-arrow-${grupo.keyGroup}" onclick="toggleAcordeon('${grupo.keyGroup}')">${estaAbierto ? '▲' : '▼'}</div>
           </div>
 
           <div class="client-items-container ${estaAbierto ? 'active' : ''}" id="items-group-${grupo.keyGroup}">
@@ -285,6 +324,19 @@
         `;
         container.appendChild(div);
       });
+    }
+
+    function toggleEtiqueta(keyGroup, keyTag) {
+      if (!estadoEtiquetasClientes[keyGroup]) return;
+      estadoEtiquetasClientes[keyGroup][keyTag] = !estadoEtiquetasClientes[keyGroup][keyTag];
+      agruparPorCliente(productosGlobales);
+      mostrarToast("✓ ETIQUETA ACTUALIZADA");
+    }
+
+    function guardarFechaDespacho(keyGroup, fechaVal) {
+      if (!estadoEtiquetasClientes[keyGroup]) return;
+      estadoEtiquetasClientes[keyGroup].fechaDespacho = fechaVal;
+      mostrarToast("✓ FECHA REGISTRADA: " + fechaVal);
     }
 
     function toggleAcordeon(keyGroup) {
@@ -360,16 +412,6 @@
       );
     }
 
-    async function cambiarEstadoEmpaque(chk, fila) {
-      await fetch(URL_API, { method: 'POST', body: JSON.stringify({ accion: "VERIFICAR_EMPAQUE", fila: fila, manojo: chk.checked }) });
-      mostrarToast();
-    }
-
-    async function cambiarEstadoObs(chk, fila) {
-      await fetch(URL_API, { method: 'POST', body: JSON.stringify({ accion: "OBSERVACION", fila: fila, observacion: chk.checked }) });
-      mostrarToast();
-    }
-
     function aplicarFiltros() {
       const texto = document.getElementById('txtBuscar').value.toLowerCase().trim();
       const filtrados = productosGlobales.filter(item => {
@@ -389,7 +431,6 @@
       const workbook = XLSX.read(data, { type: 'array' });
       const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
 
-      // Set de Comprobantes YA subidos previamente en la Base de Datos
       const comprobantesExistentes = new Set();
       productosGlobales.forEach(p => {
         if (p.comprobante) {
@@ -408,13 +449,11 @@
         const numero = r['NUMERO'] || '';
         const comprobante = `${serie}-${numero}`.trim().toUpperCase();
 
-        // 1. Filtrar ítem con cantidad 0
         if (cantidad <= 0) {
           cerosDetalle.push(`${comprobante}: ${productoNombre}`);
           return;
         }
 
-        // 2. Rechazar si el Comprobante YA FUE SUBIDO previamente
         if (comprobantesExistentes.has(comprobante)) {
           dupesDetalle.add(comprobante);
           return;
