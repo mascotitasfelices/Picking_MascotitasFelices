@@ -62,25 +62,33 @@
     .client-card { background: var(--card-bg); border-radius: 20px; padding: 14px 16px; border: 1px solid #e2e8f0; }
     .client-card.completo { background-color: var(--status-completed-bg) !important; border: 1.5px solid var(--status-completed-border); }
 
-    .card-main { display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
-    .card-left { display: flex; align-items: center; gap: 12px; width: 100%; }
+    .card-main { display: flex; align-items: flex-start; justify-content: space-between; }
+    .card-left { display: flex; align-items: flex-start; gap: 12px; width: 100%; }
     .icon-circle { width: 42px; height: 42px; border-radius: 12px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 1.1em; flex-shrink: 0; }
     
-    .client-header-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .client-header-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
     .client-name { font-weight: 800; font-size: 0.95em; color: var(--text-dark); text-transform: uppercase; }
     
-    /* Nueva sección de etiquetas al lado del nombre */
-    .tags-container { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-    .tag-btn {
-      font-size: 0.68em; font-weight: 700; padding: 4px 8px; border-radius: 8px; border: 1px solid #cbd5e1;
-      background: #f8fafc; color: #475569; cursor: pointer; user-select: none; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 4px;
+    .active-tags-header { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .tag-badge {
+      font-size: 0.68em; font-weight: 800; padding: 3px 8px; border-radius: 8px; background: #0284c7; color: white; display: inline-flex; align-items: center; gap: 4px;
     }
-    .tag-btn.active { background: #0284c7; color: white; border-color: #0369a1; }
-    .tag-btn.active.despachado { background: #16a34a; border-color: #15803d; }
-    .tag-btn.active.acumular { background: #d97706; border-color: #b45309; }
-    .tag-date-input { font-size: 0.75em; padding: 2px 4px; border-radius: 6px; border: 1px solid #0284c7; outline: none; }
+    .tag-badge.despachado { background: #16a34a; }
+    .tag-badge.acumular { background: #d97706; }
 
     .client-meta { font-size: 0.75em; color: var(--text-muted); margin-top: 2px; font-weight: 600; }
+
+    /* Barra de Opciones Abajo */
+    .options-bar-bottom {
+      display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; padding-top: 10px; border-top: 1px dashed #cbd5e1;
+    }
+    .btn-option-tag {
+      font-size: 0.72em; font-weight: 700; padding: 6px 10px; border-radius: 10px; border: 1px solid #cbd5e1;
+      background: #f8fafc; color: #475569; cursor: pointer; user-select: none; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 4px;
+    }
+    .btn-option-tag.active { background: #0284c7; color: white; border-color: #0369a1; }
+    .btn-option-tag.active.despachado { background: #16a34a; border-color: #15803d; }
+    .btn-option-tag.active.acumular { background: #d97706; border-color: #b45309; }
 
     .client-items-container { display: none; margin-top: 14px; padding-top: 12px; border-top: 1px solid #cbd5e1; flex-direction: column; gap: 10px; }
     .client-items-container.active { display: flex; }
@@ -112,6 +120,8 @@
     .toast-notification.show { opacity: 1; visibility: visible; transform: translate(-50%, -50%) scale(1); }
 
     .list-rejected { font-size: 0.78em; background: #fff1f2; color: #9f1239; border: 1px solid #fecdd3; padding: 8px 12px; border-radius: 8px; margin-top: 6px; max-height: 120px; overflow-y: auto; }
+    
+    .date-picker-modal { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 1em; margin-top: 10px; outline: none; }
   </style>
 </head>
 <body>
@@ -167,7 +177,7 @@
     let productosGlobales = [];
     let accionPendiente = null;
     let acordeonesAbiertos = new Set();
-    let estadoEtiquetasClientes = {}; // Guarda localmente el estado de las etiquetas por cliente
+    let estadoEtiquetasClientes = {}; 
 
     function normalizarKey(val) {
       return String(val || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
@@ -220,6 +230,19 @@
         if (item.comprobante) mapa[keyGroup].comprobantes.add(String(item.comprobante));
         mapa[keyGroup].importeTotal += Number(item.importe || 0);
         mapa[keyGroup].items.push(item);
+
+        // Inicializar etiquetas desde Google Sheets
+        if (!estadoEtiquetasClientes[keyGroup]) {
+          const tagsArray = item.etiquetas ? item.etiquetas.split(",") : [];
+          estadoEtiquetasClientes[keyGroup] = {
+            proximoDespacho: tagsArray.includes("proximoDespacho"),
+            fechaDespacho: item.fechaDespacho || "",
+            acumular: tagsArray.includes("acumular"),
+            delivery: tagsArray.includes("delivery"),
+            recojoLocal: tagsArray.includes("recojoLocal"),
+            despachado: tagsArray.includes("despachado")
+          };
+        }
       });
 
       renderizarListaClientes(Object.values(mapa));
@@ -239,18 +262,7 @@
         const completados = grupo.items.filter(i => Number(i.cantPickeada) >= Number(i.cantSolicitada)).length;
         const clienteCompleto = totalItems > 0 && totalItems === completados;
         const estaAbierto = acordeonesAbiertos.has(grupo.keyGroup);
-
-        if (!estadoEtiquetasClientes[grupo.keyGroup]) {
-          estadoEtiquetasClientes[grupo.keyGroup] = {
-            proximoDespacho: false,
-            fechaDespacho: '',
-            acumular: false,
-            delivery: false,
-            recojoLocal: false,
-            despachado: false
-          };
-        }
-        const state = estadoEtiquetasClientes[grupo.keyGroup];
+        const state = estadoEtiquetasClientes[grupo.keyGroup] || {};
 
         const div = document.createElement('div');
         div.className = `client-card ${clienteCompleto ? 'completo' : ''}`;
@@ -273,49 +285,54 @@
           `;
         });
 
+        // Generar etiquetas activas al costado del nombre
+        let badgesHtml = '';
+        if (state.proximoDespacho) {
+          badgesHtml += `<span class="tag-badge">📅 PRÓXIMO DESPACHO (${state.fechaDespacho || 'S/F'})</span>`;
+        }
+        if (state.acumular) badgesHtml += `<span class="tag-badge acumular">📦 ACUMULAR</span>`;
+        if (state.delivery) badgesHtml += `<span class="tag-badge">🛵 DELIVERY</span>`;
+        if (state.recojoLocal) badgesHtml += `<span class="tag-badge">🏪 RECOJO EN LOCAL</span>`;
+        if (state.despachado) badgesHtml += `<span class="tag-badge despachado">🚀 DESPACHADO</span>`;
+
         const arrComprobantes = Array.from(grupo.comprobantes).join(', ');
         const arrFechas = Array.from(grupo.fechas).join(', ');
 
         div.innerHTML = `
           <div class="card-main">
-            <div class="card-left" onclick="toggleAcordeon('${grupo.keyGroup}')">
-              <div class="icon-circle" id="client-icon-${grupo.keyGroup}">${clienteCompleto ? '✅' : '👤'}</div>
+            <div class="card-left">
+              <div class="icon-circle" id="client-icon-${grupo.keyGroup}" onclick="toggleAcordeon('${grupo.keyGroup}')">${clienteCompleto ? '✅' : '👤'}</div>
               <div style="width:100%;">
                 <div class="client-header-title">
-                  <span class="client-name">${grupo.cliente}</span>
-                  
-                  <div class="tags-container" onclick="event.stopPropagation()">
-                    <button class="tag-btn ${state.proximoDespacho ? 'active' : ''}" onclick="toggleEtiqueta('${grupo.keyGroup}', 'proximoDespacho')">
-                      📅 PRÓXIMO DESPACHO
-                    </button>
-                    ${state.proximoDespacho ? `
-                      <input type="date" class="tag-date-input" value="${state.fechaDespacho}" onchange="guardarFechaDespacho('${grupo.keyGroup}', this.value)">
-                    ` : ''}
-
-                    <button class="tag-btn acumular ${state.acumular ? 'active' : ''}" onclick="toggleEtiqueta('${grupo.keyGroup}', 'acumular')">
-                      📦 ACUMULAR
-                    </button>
-
-                    <button class="tag-btn ${state.delivery ? 'active' : ''}" onclick="toggleEtiqueta('${grupo.keyGroup}', 'delivery')">
-                      🛵 DELIVERY
-                    </button>
-
-                    <button class="tag-btn ${state.recojoLocal ? 'active' : ''}" onclick="toggleEtiqueta('${grupo.keyGroup}', 'recojoLocal')">
-                      🏪 RECOJO EN LOCAL
-                    </button>
-
-                    <button class="tag-btn despachado ${state.despachado ? 'active' : ''}" onclick="toggleEtiqueta('${grupo.keyGroup}', 'despachado')">
-                      🚀 DESPACHADO
-                    </button>
-                  </div>
+                  <span class="client-name" onclick="toggleAcordeon('${grupo.keyGroup}')">${grupo.cliente}</span>
+                  <div class="active-tags-header">${badgesHtml}</div>
                 </div>
 
-                <div class="client-meta">DOC: ${grupo.docCliente} | FECHA: ${arrFechas}</div>
-                <div class="client-meta">COMP: ${arrComprobantes} (${grupo.comprobantes.size}) | TOTAL: S/ ${grupo.importeTotal.toFixed(2)}</div>
-                <div class="client-meta" id="progreso-text-${grupo.keyGroup}" style="color:var(--brand-orange);">PROGRESO: ${completados}/${totalItems} ÍTEMS</div>
+                <div class="client-meta" onclick="toggleAcordeon('${grupo.keyGroup}')">DOC: ${grupo.docCliente} | FECHA: ${arrFechas}</div>
+                <div class="client-meta" onclick="toggleAcordeon('${grupo.keyGroup}')">COMP: ${arrComprobantes} (${grupo.comprobantes.size}) | TOTAL: S/ ${grupo.importeTotal.toFixed(2)}</div>
+                <div class="client-meta" id="progreso-text-${grupo.keyGroup}" style="color:var(--brand-orange);" onclick="toggleAcordeon('${grupo.keyGroup}')">PROGRESO: ${completados}/${totalItems} ÍTEMS</div>
+
+                <!-- Botones de selección abajo -->
+                <div class="options-bar-bottom">
+                  <button class="btn-option-tag ${state.proximoDespacho ? 'active' : ''}" onclick="clickProximoDespacho('${grupo.keyGroup}')">
+                    📅 PRÓXIMO DESPACHO
+                  </button>
+                  <button class="btn-option-tag acumular ${state.acumular ? 'active' : ''}" onclick="toggleEtiquetaOption('${grupo.keyGroup}', 'acumular')">
+                    📦 ACUMULAR
+                  </button>
+                  <button class="btn-option-tag ${state.delivery ? 'active' : ''}" onclick="toggleEtiquetaOption('${grupo.keyGroup}', 'delivery')">
+                    🛵 DELIVERY
+                  </button>
+                  <button class="btn-option-tag ${state.recojoLocal ? 'active' : ''}" onclick="toggleEtiquetaOption('${grupo.keyGroup}', 'recojoLocal')">
+                    🏪 RECOJO EN LOCAL
+                  </button>
+                  <button class="btn-option-tag despachado ${state.despachado ? 'active' : ''}" onclick="toggleEtiquetaOption('${grupo.keyGroup}', 'despachado')">
+                    🚀 DESPACHADO
+                  </button>
+                </div>
               </div>
             </div>
-            <div style="font-size:0.8em; color:var(--text-muted); padding-left:8px;" id="icon-arrow-${grupo.keyGroup}" onclick="toggleAcordeon('${grupo.keyGroup}')">${estaAbierto ? '▲' : '▼'}</div>
+            <div style="font-size:0.8em; color:var(--text-muted); padding-left:8px; cursor:pointer;" id="icon-arrow-${grupo.keyGroup}" onclick="toggleAcordeon('${grupo.keyGroup}')">${estaAbierto ? '▲' : '▼'}</div>
           </div>
 
           <div class="client-items-container ${estaAbierto ? 'active' : ''}" id="items-group-${grupo.keyGroup}">
@@ -326,17 +343,71 @@
       });
     }
 
-    function toggleEtiqueta(keyGroup, keyTag) {
-      if (!estadoEtiquetasClientes[keyGroup]) return;
-      estadoEtiquetasClientes[keyGroup][keyTag] = !estadoEtiquetasClientes[keyGroup][keyTag];
-      agruparPorCliente(productosGlobales);
-      mostrarToast("✓ ETIQUETA ACTUALIZADA");
+    function clickProximoDespacho(keyGroup) {
+      const state = estadoEtiquetasClientes[keyGroup];
+      
+      if (state.proximoDespacho) {
+        state.proximoDespacho = false;
+        state.fechaDespacho = "";
+        guardarEtiquetasEnBD(keyGroup);
+      } else {
+        const hoy = new Date().toISOString().split('T')[0];
+        const bodyHtml = `
+          <div>Selecciona la fecha programada para el envío:</div>
+          <input type="date" id="inputFechaDespacho" class="date-picker-modal" value="${state.fechaDespacho || hoy}">
+        `;
+
+        abrirModal("PROGRAMAR DESPACHO", "FECHA DE PRÓXIMO ENVÍO", bodyHtml, true, async (conf) => {
+          if (conf) {
+            const fechaVal = document.getElementById('inputFechaDespacho').value;
+            if (fechaVal) {
+              state.proximoDespacho = true;
+              state.fechaDespacho = fechaVal;
+              guardarEtiquetasEnBD(keyGroup);
+            }
+          }
+        });
+      }
     }
 
-    function guardarFechaDespacho(keyGroup, fechaVal) {
+    function toggleEtiquetaOption(keyGroup, keyTag) {
       if (!estadoEtiquetasClientes[keyGroup]) return;
-      estadoEtiquetasClientes[keyGroup].fechaDespacho = fechaVal;
-      mostrarToast("✓ FECHA REGISTRADA: " + fechaVal);
+      estadoEtiquetasClientes[keyGroup][keyTag] = !estadoEtiquetasClientes[keyGroup][keyTag];
+      guardarEtiquetasEnBD(keyGroup);
+    }
+
+    async function guardarEtiquetasEnBD(keyGroup) {
+      agruparPorCliente(productosGlobales);
+      mostrarToast("Sincronizando estado...");
+
+      const state = estadoEtiquetasClientes[keyGroup];
+      const tagsActivas = [];
+      if (state.proximoDespacho) tagsActivas.push("proximoDespacho");
+      if (state.acumular) tagsActivas.push("acumular");
+      if (state.delivery) tagsActivas.push("delivery");
+      if (state.recojoLocal) tagsActivas.push("recojoLocal");
+      if (state.despachado) tagsActivas.push("despachado");
+
+      const itemsCliente = productosGlobales.filter(p => normalizarKey(p.docCliente || p.cliente || 'GENERAL') === keyGroup);
+      const comprobantesTarget = Array.from(new Set(itemsCliente.map(i => String(i.comprobante).trim().toUpperCase())));
+
+      itemsCliente.forEach(i => {
+        i.etiquetas = tagsActivas.join(",");
+        i.fechaDespacho = state.fechaDespacho;
+      });
+
+      await fetch(URL_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          accion: "GUARDAR_ETIQUETAS_CLIENTE",
+          comprobantes: comprobantesTarget,
+          etiquetas: tagsActivas,
+          fechaDespacho: state.fechaDespacho
+        })
+      });
+
+      mostrarToast("✓ GUARDADO EN GOOGLE SHEETS");
     }
 
     function toggleAcordeon(keyGroup) {
@@ -470,7 +541,7 @@
           r['UNIDAD MEDIDA'] || 'EA',
           cantidad,
           r['IMPORTE'] || 0,
-          0, false, false, "PENDIENTE"
+          0, "", "", "PENDIENTE"
         ]);
       });
 
