@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Cargar Excel a Sistema de Picking</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    body { font-family: sans-serif; margin: 40px; background: #f4f6f9; }
+    .card { background: white; padding: 30px; border-radius: 8px; max-width: 500px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    button { background: #2F5597; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; }
+    #status { margin-top: 15px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Subir Comprobante / Ventas</h2>
+    <input type="file" id="excelFile" accept=".xlsx, .xls" /><br><br>
+    <button onclick="subirYProcesar()">Cargar al Sistema de Picking</button>
+    <div id="status"></div>
+  </div>
+
+  <script>
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzgfhVbc7d2r3SSjWVpeuTbSkFxAWpBgTnSw47Jnc9m-KEvpm2UADNT0ezcbUNubd9Y/exec";
+
+    async function subirYProcesar() {
+      const input = document.getElementById('excelFile');
+      const status = document.getElementById('status');
+
+      if (!input.files.length) return alert("Selecciona un archivo Excel.");
+
+      status.innerText = "Procesando archivo...";
+      const data = await input.files[0].arrayBuffer();
+      const workbook = XLSX.read(data, { type: 'array' });
+      const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+
+      // Transformar datos ordenando por cliente y estructurando según el formato de inventario
+      rawData.sort((a, b) => String(a.CLIENTE).localeCompare(String(b.CLIENTE)));
+
+      const rows = rawData.map((r, i) => {
+        const rowNum = i + 2;
+        return [
+          r['CODIGO ITEM'] || '',
+          r['DESCRIPCION'] || '',
+          r['CATEGORIA'] || '',
+          r['UNIDAD MEDIDA'] || '',
+          r['CLIENTE'] || '',
+          `${r['SERIE'] || ''}-${r['NUMERO'] || ''}`,
+          r['CANTIDAD'] || 0,
+          r['CANTIDAD'] || 0, // Cantidad Pickeada inicial
+          `=H${rowNum}-G${rowNum}`, // Fórmula diferencia
+          true, // Estado Listo
+          false, // Con Observación
+          `=IF(J${rowNum}=TRUE, "LISTO", IF(H${rowNum}>0, "EN PROCESO", "PENDIENTE"))`
+        ];
+      });
+
+      status.innerText = "Enviando a Google Sheets...";
+      fetch(WEB_APP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ rows: rows })
+      })
+      .then(res => res.json())
+      .then(res => {
+        status.innerText = "¡Carga completa! " + res.message;
+      })
+      .catch(err => {
+        status.innerText = "Error: " + err;
+      });
+    }
+  </script>
+</body>
+</html>
