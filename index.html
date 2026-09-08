@@ -157,6 +157,10 @@
     let accionPendiente = null;
     let acordeonesAbiertos = new Set();
 
+    function normalizarKey(val) {
+      return String(val || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
+    }
+
     async function cargarDatos() {
       try {
         const res = await fetch(URL_API);
@@ -182,10 +186,12 @@
       const mapa = {};
 
       data.forEach(item => {
-        const key = item.docCliente || item.cliente || 'GENERAL';
-        if (!mapa[key]) {
-          mapa[key] = {
-            keyGroup: key,
+        const keyRaw = item.docCliente || item.cliente || 'GENERAL';
+        const keyGroup = normalizarKey(keyRaw);
+
+        if (!mapa[keyGroup]) {
+          mapa[keyGroup] = {
+            keyGroup: keyGroup,
             docCliente: item.docCliente || 'S/D',
             cliente: item.cliente || 'CLIENTE GENERAL',
             fechas: new Set(),
@@ -197,11 +203,11 @@
         if (item.fecha) {
           let f = String(item.fecha);
           if (f.includes("T")) f = f.split("T")[0];
-          mapa[key].fechas.add(f);
+          mapa[keyGroup].fechas.add(f);
         }
-        if (item.comprobante) mapa[key].comprobantes.add(String(item.comprobante));
-        mapa[key].importeTotal += Number(item.importe || 0);
-        mapa[key].items.push(item);
+        if (item.comprobante) mapa[keyGroup].comprobantes.add(String(item.comprobante));
+        mapa[keyGroup].importeTotal += Number(item.importe || 0);
+        mapa[keyGroup].items.push(item);
       });
 
       renderizarListaClientes(Object.values(mapa));
@@ -326,7 +332,11 @@
 
               actualizarBarraProgreso();
               
-              const itemsCliente = productosGlobales.filter(p => (p.docCliente || p.cliente || 'GENERAL') === keyGroup);
+              const itemsCliente = productosGlobales.filter(p => {
+                const k = normalizarKey(p.docCliente || p.cliente || 'GENERAL');
+                return k === keyGroup;
+              });
+
               const total = itemsCliente.length;
               const comp = itemsCliente.filter(i => Number(i.cantPickeada) >= Number(i.cantSolicitada)).length;
               
@@ -379,10 +389,12 @@
       const workbook = XLSX.read(data, { type: 'array' });
       const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
 
-      const existentes = new Set();
+      // Set de Comprobantes YA subidos previamente en la Base de Datos
+      const comprobantesExistentes = new Set();
       productosGlobales.forEach(p => {
-        const clave = `${p.comprobante}_${p.codigo}`;
-        existentes.add(clave);
+        if (p.comprobante) {
+          comprobantesExistentes.add(String(p.comprobante).trim().toUpperCase());
+        }
       });
 
       const rowsAInsertar = [];
@@ -394,29 +406,26 @@
         const productoNombre = r['DESCRIPCION'] || 'Producto Sin Nombre';
         const serie = r['SERIE'] || '';
         const numero = r['NUMERO'] || '';
-        const codigo = r['CODIGO ITEM'] || 'S/C';
-        const comprobante = `${serie}-${numero}`;
+        const comprobante = `${serie}-${numero}`.trim().toUpperCase();
 
+        // 1. Filtrar ítem con cantidad 0
         if (cantidad <= 0) {
           cerosDetalle.push(`${comprobante}: ${productoNombre}`);
           return;
         }
 
-        const claveUnica = `${comprobante}_${codigo}`;
-
-        if (existentes.has(claveUnica)) {
+        // 2. Rechazar si el Comprobante YA FUE SUBIDO previamente
+        if (comprobantesExistentes.has(comprobante)) {
           dupesDetalle.add(comprobante);
           return;
         }
-
-        existentes.add(claveUnica);
 
         rowsAInsertar.push([
           r['FECHA'] || '',
           r['DOC CLIENTE'] || 'S/D',
           r['CLIENTE'] || 'CLIENTE GENERAL',
           comprobante,
-          codigo,
+          r['CODIGO ITEM'] || 'S/C',
           productoNombre,
           r['CATEGORIA'] || 'GENERAL',
           r['UNIDAD MEDIDA'] || 'EA',
@@ -434,7 +443,7 @@
         htmlReporte += `<div style="font-weight:800; font-size:0.85em; margin-top:8px; color:#9f1239;">DETALLE DE RECHAZADOS:</div>`;
         
         if (arrDupes.length > 0) {
-          htmlReporte += `<div style="font-size:0.8em; font-weight:700; margin-top:4px;">• Comprobantes Duplicados (${arrDupes.length}):</div>`;
+          htmlReporte += `<div style="font-size:0.8em; font-weight:700; margin-top:4px;">• Comprobantes ya subidos previamente (${arrDupes.length}):</div>`;
           htmlReporte += `<div class="list-rejected">${arrDupes.join('<br>')}</div>`;
         }
 
