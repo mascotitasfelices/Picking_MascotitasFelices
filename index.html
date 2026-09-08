@@ -2,9 +2,43 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Picking Agilizado por Cliente y Comprobante</title>
   
+  <!-- CONFIGURACIÓN PWA Y LOGO DESDE GOOGLE DRIVE -->
+  <link rel="icon" type="image/png" href="https://lh3.googleusercontent.com/d/15UU95djdzlxZErpFFqwHfXPMukffnN-f">
+  <link rel="apple-touch-icon" href="https://lh3.googleusercontent.com/d/15UU95djdzlxZErpFFqwHfXPMukffnN-f">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Picking App">
+
+  <!-- MANIFEST DE LA PWA EMBEBIDO -->
+  <link rel="manifest" href='data:application/manifest+json,{
+    "name": "Control de Picking",
+    "short_name": "Picking App",
+    "start_url": "./",
+    "display": "standalone",
+    "background_color": "#0f172a",
+    "theme_color": "#0f172a",
+    "orientation": "portrait",
+    "icons": [
+      {
+        "src": "https://lh3.googleusercontent.com/d/15UU95djdzlxZErpFFqwHfXPMukffnN-f",
+        "sizes": "192x192",
+        "type": "image/png",
+        "purpose": "any maskable"
+      },
+      {
+        "src": "https://lh3.googleusercontent.com/d/15UU95djdzlxZErpFFqwHfXPMukffnN-f",
+        "sizes": "512x512",
+        "type": "image/png",
+        "purpose": "any maskable"
+      }
+    ]
+  }'>
+
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <style>
@@ -28,6 +62,7 @@
       color: var(--text-dark);
       margin: 0;
       padding: 16px 12px 80px 12px;
+      user-select: none;
     }
 
     .pin-screen {
@@ -52,6 +87,14 @@
       max-width: 320px;
       text-align: center;
       box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+
+    .app-logo-pin {
+      width: 80px;
+      height: 80px;
+      object-fit: contain;
+      margin-bottom: 12px;
+      border-radius: 16px;
     }
 
     .pin-input {
@@ -101,8 +144,39 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.03);
     }
 
+    .header-logo-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-logo-img {
+      width: 40px;
+      height: 40px;
+      object-fit: contain;
+      border-radius: 8px;
+    }
+
     .company-name { font-size: 0.75em; font-weight: 800; color: var(--brand-orange); }
-    .header-title { font-size: 1.1em; font-weight: 800; color: var(--primary-dark); }
+    .header-title { font-size: 1.05em; font-weight: 800; color: var(--primary-dark); }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .btn-install {
+      background: var(--brand-orange);
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 0.75em;
+      font-weight: 800;
+      cursor: pointer;
+      display: none;
+    }
 
     .btn-upload {
       background: var(--primary-dark); color: white; border: none; padding: 8px 12px; border-radius: 10px; font-size: 0.75em; font-weight: 800; cursor: pointer;
@@ -207,8 +281,10 @@
 </head>
 <body>
 
+  <!-- PANTALLA PIN -->
   <div class="pin-screen" id="pinScreen">
     <div class="pin-card">
+      <img src="https://lh3.googleusercontent.com/d/15UU95djdzlxZErpFFqwHfXPMukffnN-f" class="app-logo-pin" alt="Logo">
       <div style="font-size:0.8em; font-weight:800; color:var(--brand-orange); margin-bottom:4px;">SISTEMA DE PICKING</div>
       <h3 style="margin:0 0 12px 0;">Ingrese PIN de Acceso</h3>
       <input type="password" id="inputPin" class="pin-input" maxlength="4" placeholder="••••" onkeyup="if(event.key==='Enter') verificarPin()">
@@ -217,13 +293,20 @@
     </div>
   </div>
 
+  <!-- CONTENIDO PRINCIPAL -->
   <div class="app-content" id="appContent">
     <div class="header-brand">
-      <div>
-        <div class="company-name">SISTEMA DE PICKING</div>
-        <div class="header-title">CONTROL POR CLIENTE Y COMPROBANTE</div>
+      <div class="header-logo-container">
+        <img src="https://lh3.googleusercontent.com/d/15UU95djdzlxZErpFFqwHfXPMukffnN-f" class="header-logo-img" alt="Logo">
+        <div>
+          <div class="company-name">SISTEMA DE PICKING</div>
+          <div class="header-title">CONTROL POR CLIENTE</div>
+        </div>
       </div>
-      <button class="btn-upload" onclick="document.getElementById('fileExcel').click()">➕ AGREGAR EXCEL</button>
+      <div class="header-actions">
+        <button id="btnInstalarApp" class="btn-install" onclick="instalarPWA()">📲 INSTALAR</button>
+        <button class="btn-upload" onclick="document.getElementById('fileExcel').click()">➕ EXCEL</button>
+      </div>
       <input type="file" id="fileExcel" accept=".xlsx, .xls" style="display:none" onchange="procesarExcel(this)">
     </div>
 
@@ -280,6 +363,7 @@
     <div class="client-list" id="listaClientes">Cargando datos...</div>
   </div>
 
+  <!-- MODAL -->
   <div class="modal-overlay" id="modalOverlay">
     <div class="modal-card">
       <div style="font-size:0.8em; font-weight:800; color:var(--brand-orange);" id="modalTag">CONFIRMAR PRODUCTO</div>
@@ -305,6 +389,39 @@
     let acordeonesComprobantes = new Set();
     let estadoEtiquetasComprobantes = {}; 
     let ultimaFechaGeneral = "";
+    let deferredPrompt = null;
+
+    // REGISTRO DE SERVICE WORKER PARA PWA
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        const swCode = `
+          self.addEventListener('install', e => self.skipWaiting());
+          self.addEventListener('activate', e => self.clients.claim());
+          self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(() => new Response('Offline'))));
+        `;
+        const blob = new Blob([swCode], { type: 'text/javascript' });
+        const swUrl = URL.createObjectURL(blob);
+        navigator.serviceWorker.register(swUrl).catch(err => console.log('SW Error:', err));
+      });
+    }
+
+    // CAPTURA DE EVENTO PARA INSTALAR COMO APP
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      const btnInstalar = document.getElementById('btnInstalarApp');
+      if (btnInstalar) btnInstalar.style.display = 'inline-block';
+    });
+
+    async function instalarPWA() {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        document.getElementById('btnInstalarApp').style.display = 'none';
+      }
+      deferredPrompt = null;
+    }
 
     function verificarPin() {
       const pin = document.getElementById('inputPin').value;
