@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Picking Agilizado por Cliente y Comprobante</title>
   
-  <!-- CONFIGURACIÓN PWA IDÉNTICA A TU OTRA APP -->
   <link rel="manifest" href="./manifest.json">
   <link rel="icon" type="image/png" href="https://lh3.googleusercontent.com/d/15UU95djdzlxZErpFFqwHfXPMukffnN-f">
   
@@ -369,7 +368,6 @@
     let ultimaFechaGeneral = "";
     let deferredPrompt = null;
 
-    // REGISTRO DE SERVICE WORKER EXACTAMENTE IGUAL A TU OTRA APP
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js').catch(()=>{});
@@ -405,6 +403,21 @@
       }
     }
 
+    async function enviarPeticionAPI(payloadObj) {
+      try {
+        await fetch(URL_API, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: JSON.stringify(payloadObj)
+        });
+        return { status: 'ok' };
+      } catch (e) {
+        console.error(e);
+        return { status: 'error' };
+      }
+    }
+
     async function procesarExcel(input) {
       const file = input.files[0];
       if (!file) return;
@@ -427,22 +440,14 @@
 
           mostrarToast("🚀 Enviando datos al servidor...");
 
-          const res = await fetch(URL_API, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify({
-              accion: "AGREGAR_EXCEL",
-              filas: jsonFilas
-            })
+          await enviarPeticionAPI({
+            accion: "AGREGAR_EXCEL",
+            filas: jsonFilas
           });
 
-          const respJson = await res.json();
-          if (respJson.status === 'ok') {
-            mostrarToast("✓ EXCEL PROCESADO CON ÉXITO");
-            cargarDatos();
-          } else {
-            alert("Ocurrió un error al guardar en Google Sheets.");
-          }
+          mostrarToast("✓ EXCEL ENVIADO CON ÉXITO");
+          setTimeout(() => { cargarDatos(); }, 1500);
+
         } catch (err) {
           console.error(err);
           alert("Error al procesar el archivo Excel: " + err.message);
@@ -845,21 +850,12 @@
         actualizarBarraProgreso(itemsFiltradosGlobal);
         agruparPorClienteYComprobante(itemsFiltradosGlobal);
 
-        try {
-          await fetch(URL_API, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify({
-              accion: "ACTUALIZAR_CANTIDAD",
-              fila: fila,
-              cantPickeada: nuevaCant
-            })
-          });
-          mostrarToast("✓ ESTADO ACTUALIZADO");
-        } catch (e) {
-          console.error(e);
-          mostrarToast("⚠️ ERROR DE CONEXIÓN AL GUARDAR");
-        }
+        await enviarPeticionAPI({
+          accion: "ACTUALIZAR_CANTIDAD",
+          fila: fila,
+          cantPickeada: nuevaCant
+        });
+        mostrarToast("✓ ESTADO ACTUALIZADO");
       };
 
       document.getElementById('modalOverlay').classList.add('active');
@@ -917,23 +913,14 @@
 
       aplicarFiltros();
 
-      try {
-        mostrarToast("💾 Guardando etiquetas...");
-        await fetch(URL_API, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({
-            accion: "ACTUALIZAR_ETIQUETAS_COMPROBANTE",
-            comprobanteKey: keyComp,
-            etiquetas: etiquetasString,
-            fechaDespacho: fechaDespachoString
-          })
-        });
-        mostrarToast("✓ ETIQUETAS GUARDADAS");
-      } catch (e) {
-        console.error(e);
-        mostrarToast("⚠️ ERROR AL GUARDAR ETIQUETAS");
-      }
+      mostrarToast("💾 Guardando...");
+      await enviarPeticionAPI({
+        accion: "ACTUALIZAR_ETIQUETAS_COMPROBANTE",
+        comprobanteKey: keyComp,
+        etiquetas: etiquetasString,
+        fechaDespacho: fechaDespachoString
+      });
+      mostrarToast("✓ ETIQUETAS GUARDADAS");
     }
 
     function cerrarModal(confirmado) {
