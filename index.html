@@ -340,7 +340,7 @@
     <div class="client-list" id="listaClientes">Cargando datos...</div>
   </div>
 
-  <!-- MODAL PARA CONFIRMAR ITEM O INGRESAR FECHA -->
+  <!-- MODAL -->
   <div class="modal-overlay" id="modalOverlay">
     <div class="modal-card">
       <div style="font-size:0.8em; font-weight:800; color:var(--brand-orange);" id="modalTag">CONFIRMAR PRODUCTO</div>
@@ -405,15 +405,21 @@
 
     async function enviarPeticionAPI(payloadObj) {
       try {
+        const params = new URLSearchParams();
+        params.append('payload', JSON.stringify(payloadObj));
+
         await fetch(URL_API, {
           method: 'POST',
           mode: 'no-cors',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: JSON.stringify(payloadObj)
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: params.toString()
         });
+        
         return { status: 'ok' };
       } catch (e) {
-        console.error(e);
+        console.error("Error enviando datos:", e);
         return { status: 'error' };
       }
     }
