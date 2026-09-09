@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Picking Agilizado por Cliente y Comprobante</title>
+  <title>Sistema Profesional de Picking</title>
   
   <link rel="manifest" href="./manifest.json">
   <link rel="icon" type="image/png" href="https://lh3.googleusercontent.com/d/15UU95djdzlxZErpFFqwHfXPMukffnN-f">
@@ -12,28 +12,28 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Picking App">
-  <link rel="apple-touch-icon" href="https://lh3.googleusercontent.com/d/15UU95djdzlxZErpFFqwHfXPMukffnN-f">
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <style>
     :root {
-      --bg-main: #f4f7f9;
+      --bg-main: #f8fafc;
       --card-bg: #ffffff;
-      --text-dark: #1e293b;
+      --text-dark: #0f172a;
       --text-muted: #64748b;
       --primary-dark: #0f172a;
-      --brand-orange: #ff6b35;
+      --brand-orange: #f97316;
       --accent-blue: #0284c7;
-      --status-completed-bg: #dcfce7;
-      --status-completed-border: #16a34a;
+      --status-completed-bg: #f0fdf4;
+      --status-completed-border: #22c55e;
+      --status-anulada-bg: #fef2f2;
+      --status-anulada-border: #ef4444;
     }
 
     * { box-sizing: border-box; }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background-color: var(--bg-main);
       color: var(--text-dark);
       margin: 0;
@@ -43,175 +43,86 @@
     }
 
     .pin-screen {
-      position: fixed;
-      top: 0; left: 0; width: 100vw; height: 100vh;
-      background: var(--primary-dark);
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      z-index: 5000;
-      color: white;
-      padding: 20px;
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: var(--primary-dark); display: flex; flex-direction: column;
+      justify-content: center; align-items: center; z-index: 5000; color: white; padding: 20px;
     }
 
     .pin-card {
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 20px;
-      padding: 24px;
-      width: 100%;
-      max-width: 320px;
-      text-align: center;
+      background: #1e293b; border: 1px solid #334155; border-radius: 20px;
+      padding: 24px; width: 100%; max-width: 320px; text-align: center;
       box-shadow: 0 10px 25px rgba(0,0,0,0.5);
     }
 
-    .app-logo-pin {
-      width: 80px;
-      height: 80px;
-      object-fit: contain;
-      margin-bottom: 12px;
-      border-radius: 16px;
-    }
+    .app-logo-pin { width: 80px; height: 80px; object-fit: contain; margin-bottom: 12px; border-radius: 16px; }
 
     .pin-input {
-      width: 100%;
-      font-size: 2em;
-      letter-spacing: 12px;
-      text-align: center;
-      padding: 10px;
-      border-radius: 12px;
-      border: 2px solid #475569;
-      background: #0f172a;
-      color: #38bdf8;
-      margin: 16px 0;
-      outline: none;
+      width: 100%; font-size: 2em; letter-spacing: 12px; text-align: center;
+      padding: 10px; border-radius: 12px; border: 2px solid #475569;
+      background: #0f172a; color: #38bdf8; margin: 16px 0; outline: none;
     }
 
     .pin-btn {
-      width: 100%;
-      padding: 12px;
-      background: var(--brand-orange);
-      color: white;
-      border: none;
-      border-radius: 12px;
-      font-weight: 800;
-      font-size: 1em;
-      cursor: pointer;
+      width: 100%; padding: 12px; background: var(--brand-orange); color: white;
+      border: none; border-radius: 12px; font-weight: 800; font-size: 1em; cursor: pointer;
     }
 
-    .pin-error {
-      color: #f87171;
-      font-size: 0.85em;
-      font-weight: 700;
-      margin-top: 10px;
-      display: none;
-    }
+    .pin-error { color: #f87171; font-size: 0.85em; font-weight: 700; margin-top: 10px; display: none; }
 
     .app-content { display: none; }
 
     .header-brand {
-      background: var(--card-bg);
-      border-radius: 20px;
-      padding: 12px 16px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+      background: var(--card-bg); border-radius: 20px; padding: 12px 16px;
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); border: 1px solid #e2e8f0;
     }
 
-    .header-logo-container {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .header-logo-img {
-      width: 40px;
-      height: 40px;
-      object-fit: contain;
-      border-radius: 8px;
-    }
-
-    .company-name { font-size: 0.75em; font-weight: 800; color: var(--brand-orange); }
+    .header-logo-container { display: flex; align-items: center; gap: 12px; }
+    .header-logo-img { width: 40px; height: 40px; object-fit: contain; border-radius: 8px; }
+    .company-name { font-size: 0.75em; font-weight: 800; color: var(--brand-orange); letter-spacing: 0.5px; }
     .header-title { font-size: 1.05em; font-weight: 800; color: var(--primary-dark); }
 
-    .header-actions {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
+    .header-actions { display: flex; gap: 8px; align-items: center; }
+    .btn-install { background: var(--brand-orange); color: white; border: none; padding: 8px 12px; border-radius: 10px; font-size: 0.75em; font-weight: 800; cursor: pointer; display: none; }
+    .btn-upload { background: var(--primary-dark); color: white; border: none; padding: 8px 12px; border-radius: 10px; font-size: 0.75em; font-weight: 800; cursor: pointer; }
 
-    .btn-install {
-      background: var(--brand-orange);
-      color: white;
-      border: none;
-      padding: 8px 12px;
-      border-radius: 10px;
-      font-size: 0.75em;
-      font-weight: 800;
-      cursor: pointer;
-      display: none;
-    }
-
-    .btn-upload {
-      background: var(--primary-dark); color: white; border: none; padding: 8px 12px; border-radius: 10px; font-size: 0.75em; font-weight: 800; cursor: pointer;
-    }
-
-    .progress-card {
-      background: var(--card-bg); border-radius: 16px; padding: 12px 16px; margin-bottom: 12px; border: 1px solid #e2e8f0;
-    }
+    .progress-card { background: var(--card-bg); border-radius: 16px; padding: 12px 16px; margin-bottom: 12px; border: 1px solid #e2e8f0; }
     .progress-text { display: flex; justify-content: space-between; font-size: 0.8em; font-weight: 800; margin-bottom: 6px; }
     .progress-bar-bg { background: #e2e8f0; height: 10px; border-radius: 5px; overflow: hidden; }
     .progress-bar-fill { background: #16a34a; height: 100%; width: 0%; transition: width 0.3s ease; }
 
     .search-section {
-      background: var(--card-bg);
-      border-radius: 16px;
-      padding: 12px 16px;
-      margin-bottom: 14px;
-      border: 1px solid #e2e8f0;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
+      background: var(--card-bg); border-radius: 16px; padding: 12px 16px;
+      margin-bottom: 14px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 10px;
     }
 
-    .search-input-box input { width: 100%; border: none; outline: none; font-size: 0.95em; font-weight: 500; }
+    .search-input-box input { width: 100%; border: none; outline: none; font-size: 0.95em; font-weight: 600; }
 
-    .filter-controls-row {
-      display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding-top: 8px; border-top: 1px dashed #e2e8f0;
-    }
-
+    .filter-controls-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding-top: 8px; border-top: 1px dashed #e2e8f0; }
     .filter-control-group { display: flex; align-items: center; gap: 4px; font-size: 0.75em; font-weight: 700; color: var(--text-muted); }
-    .filter-control-group select, .filter-control-group input[type="date"] {
-      border: 1px solid #cbd5e1; border-radius: 8px; padding: 4px 8px; font-size: 0.85em; outline: none; background: white; color: var(--text-dark);
-    }
+    .filter-control-group select, .filter-control-group input[type="date"] { border: 1px solid #cbd5e1; border-radius: 8px; padding: 4px 8px; font-size: 0.85em; outline: none; background: white; color: var(--text-dark); }
 
-    .checkbox-filter {
-      display: flex; align-items: center; gap: 6px; font-size: 0.75em; font-weight: 800; color: #0369a1; background: #e0f2fe; padding: 4px 8px; border-radius: 8px; cursor: pointer;
-    }
-
-    .btn-clear-filters {
-      font-size: 0.72em; font-weight: 700; padding: 5px 10px; border-radius: 8px; border: none; background: #fee2e2; color: #991b1b; cursor: pointer; margin-left: auto;
-    }
+    .checkbox-filter { display: flex; align-items: center; gap: 6px; font-size: 0.75em; font-weight: 800; color: #0369a1; background: #e0f2fe; padding: 4px 8px; border-radius: 8px; cursor: pointer; }
+    .btn-clear-filters { font-size: 0.72em; font-weight: 700; padding: 5px 10px; border-radius: 8px; border: none; background: #fee2e2; color: #991b1b; cursor: pointer; margin-left: auto; }
 
     .client-list { display: flex; flex-direction: column; gap: 14px; }
-    .client-card { background: var(--card-bg); border-radius: 20px; padding: 14px 16px; border: 1px solid #e2e8f0; }
-    .client-card.completo { background-color: #f0fdf4 !important; border: 1.5px solid #86efac; }
+    .client-card { background: var(--card-bg); border-radius: 20px; padding: 14px 16px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+    .client-card.completo { background-color: var(--status-completed-bg) !important; border: 1.5px solid var(--status-completed-border); }
+    .client-card.anulada { background-color: var(--status-anulada-bg) !important; border: 1.5px solid var(--status-anulada-border); opacity: 0.8; }
     .client-card.despachado { background-color: #f8fafc !important; opacity: 0.85; border: 1px solid #cbd5e1; }
 
     .card-main { display: flex; align-items: flex-start; justify-content: space-between; cursor: pointer; }
     .card-left { display: flex; align-items: flex-start; gap: 12px; width: 100%; }
     .icon-circle { width: 42px; height: 42px; border-radius: 12px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 1.1em; flex-shrink: 0; }
     
-    .client-header-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+    .client-header-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 2px; }
     .client-name { font-weight: 800; font-size: 0.95em; color: var(--text-dark); text-transform: uppercase; }
 
-    .active-tags-header { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .active-tags-header { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 4px; }
     .tag-badge { font-size: 0.68em; font-weight: 800; padding: 3px 8px; border-radius: 8px; background: #0284c7; color: white; display: inline-flex; align-items: center; gap: 4px; }
     .tag-badge.despachado { background: #16a34a; }
     .tag-badge.acumular { background: #d97706; }
+    .tag-badge.anulada { background: #dc2626; }
 
     .client-meta { font-size: 0.75em; color: var(--text-muted); margin-top: 2px; font-weight: 600; }
 
@@ -220,15 +131,17 @@
 
     .comp-card { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 14px; padding: 12px; }
     .comp-card.completo { background-color: var(--status-completed-bg); border-color: var(--status-completed-border); }
+    .comp-card.anulada { background-color: var(--status-anulada-bg); border-color: var(--status-anulada-border); text-decoration: line-through; }
 
     .comp-header { display: flex; justify-content: space-between; align-items: flex-start; cursor: pointer; }
-    .comp-title { font-size: 0.85em; font-weight: 800; color: var(--primary-dark); }
+    .comp-title { font-size: 0.88em; font-weight: 800; color: var(--primary-dark); }
 
     .options-bar-bottom { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; padding-top: 8px; border-top: 1px dashed #cbd5e1; }
     .btn-option-tag { font-size: 0.7em; font-weight: 700; padding: 5px 8px; border-radius: 8px; border: 1px solid #cbd5e1; background: #ffffff; color: #475569; cursor: pointer; }
     .btn-option-tag.active { background: #0284c7; color: white; border-color: #0369a1; }
     .btn-option-tag.active.despachado { background: #16a34a; border-color: #15803d; }
     .btn-option-tag.active.acumular { background: #d97706; border-color: #b45309; }
+    .btn-option-tag.active.anulada { background: #dc2626; border-color: #991b1b; }
 
     .items-container { display: none; margin-top: 10px; padding-top: 8px; border-top: 1px solid #e2e8f0; flex-direction: column; gap: 8px; }
     .items-container.active { display: flex; }
@@ -258,7 +171,7 @@
 </head>
 <body>
 
-  <!-- PANTALLA PIN -->
+  <!-- PANTALLA DE AUTENTICACIÓN -->
   <div class="pin-screen" id="pinScreen">
     <div class="pin-card">
       <img src="https://lh3.googleusercontent.com/d/15UU95djdzlxZErpFFqwHfXPMukffnN-f" class="app-logo-pin" alt="Logo">
@@ -270,7 +183,7 @@
     </div>
   </div>
 
-  <!-- CONTENIDO PRINCIPAL -->
+  <!-- APLICACIÓN PRINCIPAL -->
   <div class="app-content" id="appContent">
     <div class="header-brand">
       <div class="header-logo-container">
@@ -282,7 +195,7 @@
       </div>
       <div class="header-actions">
         <button id="btnInstalarApp" class="btn-install" onclick="instalarPWA()">📲 INSTALAR</button>
-        <button class="btn-upload" onclick="document.getElementById('fileExcel').click()">➕ EXCEL</button>
+        <button class="btn-upload" onclick="document.getElementById('fileExcel').click()">➕ SUBIR EXCEL</button>
       </div>
       <input type="file" id="fileExcel" accept=".xlsx, .xls" style="display:none" onchange="procesarExcel(this)">
     </div>
@@ -305,7 +218,7 @@
       <div class="filter-controls-row">
         <label class="checkbox-filter">
           <input type="checkbox" id="chkAutoFilter" checked onchange="aplicarFiltros()">
-          <span>⚡ Último Día / No Despachados</span>
+          <span>⚡ Último Día / Pendientes</span>
         </label>
 
         <div class="filter-control-group">
@@ -317,6 +230,7 @@
             <option value="delivery">🛵 Delivery</option>
             <option value="recojoLocal">🏪 Recojo en Local</option>
             <option value="despachado">🚀 Despachado</option>
+            <option value="anulada">🚫 Anulada</option>
             <option value="sinEtiqueta">⚪ Sin Etiqueta</option>
           </select>
         </div>
@@ -340,10 +254,10 @@
     <div class="client-list" id="listaClientes">Cargando datos...</div>
   </div>
 
-  <!-- MODAL -->
+  <!-- DIÁLOGO MODAL -->
   <div class="modal-overlay" id="modalOverlay">
     <div class="modal-card">
-      <div style="font-size:0.8em; font-weight:800; color:var(--brand-orange);" id="modalTag">CONFIRMAR PRODUCTO</div>
+      <div style="font-size:0.8em; font-weight:800; color:var(--brand-orange);" id="modalTag">CONFIRMAR ACCIÓN</div>
       <div style="font-size: 1.15em; font-weight:800; margin:8px 0; color:var(--primary-dark);" id="modalProductName">PRODUCTO</div>
       <div id="modalProductMeta" style="font-size: 0.85em; text-align:left; margin:10px 0;">Detalles...</div>
       
@@ -439,19 +353,19 @@
           const worksheet = workbook.Sheets[firstSheetName];
           const jsonFilas = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-          if (jsonFilas.length === 0) {
-            alert("El archivo Excel no contiene filas de datos.");
+          if (jsonFilas.length <= 1) {
+            alert("El archivo Excel no contiene filas de datos válidas.");
             return;
           }
 
-          mostrarToast("🚀 Enviando datos al servidor...");
+          mostrarToast("🚀 Guardando datos en el servidor...");
 
           await enviarPeticionAPI({
             accion: "AGREGAR_EXCEL",
             filas: jsonFilas
           });
 
-          mostrarToast("✓ EXCEL ENVIADO CON ÉXITO");
+          mostrarToast("✓ EXCEL SUBIDO CORRECTAMENTE");
           setTimeout(() => { cargarDatos(); }, 1500);
 
         } catch (err) {
@@ -465,7 +379,7 @@
     }
 
     function normalizarKeyClient(val) {
-      return String(val || 'GENERAL').trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
+      return String(val || 'CLIENTE_GENERAL').trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
     }
 
     function normalizarKeyComp(val) {
@@ -531,14 +445,15 @@
               acumular: tagsArray.includes("acumular"),
               delivery: tagsArray.includes("delivery"),
               recojoLocal: tagsArray.includes("recojoLocal"),
-              despachado: tagsArray.includes("despachado")
+              despachado: tagsArray.includes("despachado"),
+              anulada: tagsArray.includes("anulada")
             };
           }
         });
 
         aplicarFiltros();
       } catch(e) {
-        document.getElementById('listaClientes').innerText = "Error cargando la lista de productos: " + e.message;
+        document.getElementById('listaClientes').innerText = "Error al conectar con la base de datos: " + e.message;
       }
     }
 
@@ -574,19 +489,20 @@
 
         if (autoFiltrarUltimoDia) {
           const esUltimoDia = (fechaItem === ultimaFechaGeneral);
-          const noDespachado = !state.despachado;
-          if (!esUltimoDia && !noDespachado) return false;
+          const noFinalizado = !state.despachado && !state.anulada;
+          if (!esUltimoDia && !noFinalizado) return false;
         }
 
         const coincideTexto = !texto || 
           (item.cliente && item.cliente.toLowerCase().includes(texto)) ||
           (item.docCliente && String(item.docCliente).includes(texto)) ||
           (item.producto && item.producto.toLowerCase().includes(texto)) ||
+          (item.codigo && String(item.codigo).toLowerCase().includes(texto)) ||
           (item.comprobante && String(item.comprobante).toLowerCase().includes(texto));
 
         let coincideTag = true;
         if (tagSeleccionada === 'sinEtiqueta') {
-          coincideTag = !state.proximoDespacho && !state.acumular && !state.delivery && !state.recojoLocal && !state.despachado;
+          coincideTag = !state.proximoDespacho && !state.acumular && !state.delivery && !state.recojoLocal && !state.despachado && !state.anulada;
         } else if (tagSeleccionada) {
           coincideTag = !!state[tagSeleccionada];
         }
@@ -622,7 +538,7 @@
       const mapaClientes = {};
 
       data.forEach(item => {
-        const keyClient = normalizarKeyClient(item.docCliente || item.cliente);
+        const keyClient = normalizarKeyClient(item.cliente || item.docCliente);
         const keyComp = normalizarKeyComp(item.comprobante);
 
         if (!mapaClientes[keyClient]) {
@@ -655,7 +571,9 @@
           const stateComp = estadoEtiquetasComprobantes[compObj.keyComp] || {};
 
           let prioridadComp = 1; 
-          if (stateComp.despachado) {
+          if (stateComp.anulada) {
+            prioridadComp = 4;
+          } else if (stateComp.despachado) {
             prioridadComp = 3; 
           } else if (totalItemsComp > 0 && totalItemsComp === completadosComp) {
             prioridadComp = 2; 
@@ -667,6 +585,7 @@
             completados: completadosComp,
             esCompleto: totalItemsComp > 0 && totalItemsComp === completadosComp,
             esDespachado: !!stateComp.despachado,
+            esAnulada: !!stateComp.anulada,
             prioridad: prioridadComp
           };
         });
@@ -675,15 +594,14 @@
 
         const totalItemsCli = comprobantesList.reduce((acc, c) => acc + c.totalItems, 0);
         const completadosCli = comprobantesList.reduce((acc, c) => acc + c.completados, 0);
-        const esCliDespachado = comprobantesList.length > 0 && comprobantesList.every(c => c.esDespachado);
+        const esCliAnulado = comprobantesList.length > 0 && comprobantesList.every(c => c.esAnulada);
+        const esCliDespachado = comprobantesList.length > 0 && comprobantesList.every(c => c.esDespachado || c.esAnulada);
         const esCliCompleto = totalItemsCli > 0 && totalItemsCli === completadosCli;
 
         let prioridadCli = 1; 
-        if (esCliDespachado) {
-          prioridadCli = 3; 
-        } else if (esCliCompleto) {
-          prioridadCli = 2; 
-        }
+        if (esCliAnulado) prioridadCli = 4;
+        else if (esCliDespachado) prioridadCli = 3; 
+        else if (esCliCompleto) prioridadCli = 2; 
 
         return {
           ...clienteObj,
@@ -692,6 +610,7 @@
           completados: completadosCli,
           esCompleto: esCliCompleto,
           esDespachado: esCliDespachado,
+          esAnulada: esCliAnulado,
           prioridad: prioridadCli
         };
       });
@@ -706,7 +625,7 @@
       container.innerHTML = '';
 
       if (clientes.length === 0) {
-        container.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-muted);">No hay resultados para el filtro actual.</div>';
+        container.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-muted);">No hay registros que coincidan con la búsqueda.</div>';
         return;
       }
 
@@ -714,7 +633,8 @@
         const clienteAbierto = acordeonesClientes.has(cli.keyClient);
 
         let claseCardCli = '';
-        if (cli.esDespachado) claseCardCli = 'despachado';
+        if (cli.esAnulada) claseCardCli = 'anulada';
+        else if (cli.esDespachado) claseCardCli = 'despachado';
         else if (cli.esCompleto) claseCardCli = 'completo';
 
         let htmlComprobantes = '';
@@ -723,7 +643,8 @@
           const stateComp = estadoEtiquetasComprobantes[comp.keyComp] || {};
 
           let claseComp = '';
-          if (comp.esDespachado) claseComp = 'despachado';
+          if (comp.esAnulada) claseComp = 'anulada';
+          else if (comp.esDespachado) claseComp = 'despachado';
           else if (comp.esCompleto) claseComp = 'completo';
 
           let htmlItems = '';
@@ -743,10 +664,11 @@
           });
 
           let badgesCompHtml = '';
+          if (stateComp.anulada) badgesCompHtml += `<span class="tag-badge anulada">🚫 ANULADA</span>`;
           if (stateComp.proximoDespacho) badgesCompHtml += `<span class="tag-badge">📅 PRÓX. DESPACHO (${formatearEspañolDDMMAAAA(stateComp.fechaDespacho)})</span>`;
           if (stateComp.acumular) badgesCompHtml += `<span class="tag-badge acumular">📦 ACUMULAR</span>`;
           if (stateComp.delivery) badgesCompHtml += `<span class="tag-badge">🛵 DELIVERY</span>`;
-          if (stateComp.recojoLocal) badgesCompHtml += `<span class="tag-badge">🏪 RECOJO EN LOCAL</span>`;
+          if (stateComp.recojoLocal) badgesCompHtml += `<span class="tag-badge">🏪 RECOJO LOCAL</span>`;
           if (stateComp.despachado) badgesCompHtml += `<span class="tag-badge despachado">🚀 DESPACHADO</span>`;
 
           htmlComprobantes += `
@@ -755,7 +677,7 @@
                 <div>
                   <div class="comp-title">📄 COMPROBANTE: ${comp.comprobanteOriginal} (${formatearEspañolDDMMAAAA(comp.fecha)})</div>
                   <div class="client-meta">TOTAL: S/ ${comp.importeTotal.toFixed(2)} | PROGRESO: ${comp.completados}/${comp.totalItems} ÍTEMS</div>
-                  <div class="active-tags-header" style="margin-top:4px;">${badgesCompHtml}</div>
+                  <div class="active-tags-header">${badgesCompHtml}</div>
                 </div>
                 <div style="font-size:0.8em; color:var(--text-muted);">${compAbierto ? '▲' : '▼'}</div>
               </div>
@@ -766,6 +688,7 @@
                 <button class="btn-option-tag ${stateComp.delivery ? 'active' : ''}" onclick="toggleTag('${comp.keyComp}', 'delivery')">🛵 Delivery</button>
                 <button class="btn-option-tag ${stateComp.recojoLocal ? 'active' : ''}" onclick="toggleTag('${comp.keyComp}', 'recojoLocal')">🏪 Recojo Local</button>
                 <button class="btn-option-tag ${stateComp.despachado ? 'active despachado' : ''}" onclick="toggleTag('${comp.keyComp}', 'despachado')">🚀 Despachado</button>
+                <button class="btn-option-tag ${stateComp.anulada ? 'active anulada' : ''}" onclick="toggleTag('${comp.keyComp}', 'anulada')">🚫 Anulada</button>
               </div>
 
               <div class="items-container ${compAbierto ? 'active' : ''}" id="container-items-${comp.keyComp}">
@@ -831,7 +754,7 @@
       document.getElementById('modalTag').innerText = esPickedActualmente ? "DESMARCAR PRODUCTO" : "MARCAR PRODUCTO";
       document.getElementById('modalProductName').innerText = nombreProd;
       document.getElementById('modalProductMeta').innerHTML = `
-        <b>CÓDIGO:</b> ${codigo || '—'}<br>
+        <b>CÓDIGO DE BARRAS:</b> ${codigo || '—'}<br>
         <b>CANTIDAD:</b> ${cantReq} ${item.unidad || 'EA'}<br>
         <b>ACCIÓN:</b> ${esPickedActualmente ? 'Marcar como PENDIENTE' : 'Marcar como PICKEADO'}
       `;
@@ -869,7 +792,7 @@
 
     async function toggleTag(keyComp, tagNombre) {
       if (!estadoEtiquetasComprobantes[keyComp]) {
-        estadoEtiquetasComprobantes[keyComp] = { proximoDespacho: false, fechaDespacho: "", acumular: false, delivery: false, recojoLocal: false, despachado: false };
+        estadoEtiquetasComprobantes[keyComp] = { proximoDespacho: false, fechaDespacho: "", acumular: false, delivery: false, recojoLocal: false, despachado: false, anulada: false };
       }
 
       const current = estadoEtiquetasComprobantes[keyComp];
@@ -913,6 +836,7 @@
       if (state.delivery) tagsArray.push("delivery");
       if (state.recojoLocal) tagsArray.push("recojoLocal");
       if (state.despachado) tagsArray.push("despachado");
+      if (state.anulada) tagsArray.push("anulada");
 
       const etiquetasString = tagsArray.join(",");
       const fechaDespachoString = state.fechaDespacho || "";
