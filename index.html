@@ -186,64 +186,56 @@
     }
     .dashboard-grid {
       display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 15px 0;
-      page-break-inside: avoid !important; break-inside: avoid !important;
     }
     .dash-card {
       background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; text-align: center;
-      page-break-inside: avoid !important; break-inside: avoid !important;
     }
     .dash-card-num { font-size: 1.35em; font-weight: 800; color: #0f172a; }
     .dash-card-lbl { font-size: 0.72em; font-weight: 700; color: #64748b; margin-top: 2px; }
 
     .pdf-print-area {
-      padding: 15px;
+      padding: 10px;
       background: white;
       width: 100%;
       margin: 0 auto;
       box-sizing: border-box;
-      height: auto !important;
-      max-height: none !important;
     }
 
-    /* REGLAS ANTI-CORTE DE PÁGINAS PDF */
-    table {
+    /* REGLAS ESTRICTAS DE IMPRESIÓN Y PAGINACIÓN PDF */
+    .pdf-export-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 800px;
+      background: #ffffff;
+      padding: 20px;
+      box-sizing: border-box;
+      z-index: -9999;
+      visibility: hidden;
+    }
+
+    .pdf-export-container table {
       width: 100%;
       border-collapse: collapse;
-      page-break-inside: auto;
     }
 
-    tr, .tbl-client-row, .dash-card {
+    .pdf-export-container tr {
       page-break-inside: avoid !important;
       break-inside: avoid !important;
-      -webkit-region-break-inside: avoid;
+      break-inside: avoid-page !important;
     }
 
-    thead {
+    .pdf-export-container td, .pdf-export-container th {
+      padding: 8px 6px;
+      vertical-align: middle;
+    }
+
+    .pdf-export-container thead {
       display: table-header-group;
     }
 
-    tfoot {
+    .pdf-export-container tfoot {
       display: table-footer-group;
-      page-break-inside: avoid !important;
-      break-inside: avoid !important;
-    }
-
-    .tbl-client-row {
-      border-bottom: 1px solid #e2e8f0;
-      font-size: 0.75em;
-      padding: 6px 8px;
-    }
-
-    @media print {
-      .pdf-print-area {
-        width: 100% !important;
-        padding: 0 !important;
-        margin: 0 !important;
-      }
-      tr, .dash-card, .tbl-client-row {
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
-      }
     }
   </style>
 </head>
@@ -351,7 +343,7 @@
   <div class="modal-overlay" id="modalDashboardOverlay">
     <div class="dashboard-modal-card">
       <div class="pdf-print-area" id="areaReportePDF">
-        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #0f172a; padding-bottom:8px; page-break-inside:avoid; break-inside:avoid;">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #0f172a; padding-bottom:8px;">
           <div>
             <h2 style="margin:0; font-size:1.2em; color:#0f172a;">REPORTE DASHBOARD DE CLIENTES</h2>
             <div style="font-size:0.75em; color:#64748b;" id="reporteFechaGen">Generado el: --</div>
@@ -398,7 +390,7 @@
           </div>
         </div>
 
-        <div style="margin-top:15px; font-weight:800; font-size:0.85em; color:#0f172a; border-bottom:1px solid #cbd5e1; padding-bottom:4px; page-break-inside:avoid; break-inside:avoid;">
+        <div style="margin-top:15px; font-weight:800; font-size:0.85em; color:#0f172a; border-bottom:1px solid #cbd5e1; padding-bottom:4px;">
           RESUMEN DETALLADO POR CLIENTE
         </div>
         
@@ -413,10 +405,10 @@
             </tr>
           </thead>
           <tbody id="tbodyReportePDF">
-            <!-- Rellenado dinámico por Cliente -->
+            <!-- Rellenado dinámico -->
           </tbody>
           <tfoot id="tfootReportePDF">
-            <!-- Fila de Total General -->
+            <!-- Fila Total -->
           </tfoot>
         </table>
       </div>
@@ -1180,20 +1172,41 @@
     }
 
     function descargarPDF() {
-      const elemento = document.getElementById('areaReportePDF');
       mostrarToast("📄 Generando PDF...");
+
+      // Crear un contenedor independiente fuera de modales y scrolls
+      const pdfWrapper = document.createElement('div');
+      pdfWrapper.className = 'pdf-export-container';
+      pdfWrapper.style.visibility = 'visible';
+      
+      const fuente = document.getElementById('areaReportePDF');
+      pdfWrapper.innerHTML = fuente.innerHTML;
+      
+      document.body.appendChild(pdfWrapper);
 
       const opciones = {
         margin:       [10, 10, 10, 10],
         filename:     `Reporte_Clientes_Picking_${new Date().toISOString().slice(0,10)}.pdf`,
         image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true, logging: false },
+        html2canvas:  { 
+          scale: 2, 
+          useCORS: true, 
+          logging: false,
+          scrollY: 0,
+          scrollX: 0,
+          windowWidth: 1024
+        },
         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+        pagebreak:    { mode: ['css', 'legacy'] }
       };
 
-      html2pdf().set(opciones).from(elemento).save().then(() => {
+      html2pdf().set(opciones).from(pdfWrapper).save().then(() => {
+        document.body.removeChild(pdfWrapper);
         mostrarToast("✓ PDF DESCARGADO");
+      }).catch(err => {
+        if (document.body.contains(pdfWrapper)) document.body.removeChild(pdfWrapper);
+        console.error(err);
+        alert("Error al generar PDF: " + err.message);
       });
     }
 
