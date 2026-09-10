@@ -380,7 +380,7 @@
             <!-- Rellenado dinámico -->
           </tbody>
           <tfoot id="tfootReportePDF">
-            <!-- Fila Total -->
+            <!-- Fila Total General estructurada como pie nativo -->
           </tfoot>
         </table>
       </div>
@@ -1139,7 +1139,7 @@
       document.getElementById('modalDashboardOverlay').classList.remove('active');
     }
 
-    /* GENERACIÓN DE PDF VECTORIAL / NATIVO (SIN HOJAS EN BLANCO) */
+    /* GENERACIÓN DE PDF CON REPETICIÓN DE CABECERAS Y PIE AL FINAL */
     function descargarPDF() {
       mostrarToast("📄 Generando vista de impresión...");
 
@@ -1160,7 +1160,12 @@
             table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.8em; }
             th, td { border: 1px solid #cbd5e1; padding: 6px; vertical-align: middle; }
             th { background: #f1f5f9; text-align: left; }
+            
+            /* REGLAS PARA ENCABEZADOS Y PIE EN IMPRESIÓN Y PDF */
+            thead { display: table-header-group; }
+            tfoot { display: table-footer-group; }
             tr { page-break-inside: avoid; }
+            
             @media print {
               body { padding: 0; }
               @page { margin: 1cm; size: A4 portrait; }
