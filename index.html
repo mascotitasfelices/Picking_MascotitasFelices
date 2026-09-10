@@ -186,6 +186,7 @@
     }
     .dashboard-grid {
       display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 15px 0;
+      page-break-inside: avoid !important; break-inside: avoid !important;
     }
     .dash-card {
       background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; text-align: center;
@@ -200,18 +201,37 @@
       width: 100%;
       margin: 0 auto;
       box-sizing: border-box;
+      height: auto !important;
+      max-height: none !important;
     }
 
     /* REGLAS ANTI-CORTE DE PÁGINAS PDF */
-    .tbl-client-row {
-      border-bottom: 1px solid #e2e8f0; font-size: 0.75em; padding: 6px 8px;
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      page-break-inside: auto;
+    }
+
+    tr, .tbl-client-row, .dash-card {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+      -webkit-region-break-inside: avoid;
+    }
+
+    thead {
+      display: table-header-group;
+    }
+
+    tfoot {
+      display: table-footer-group;
       page-break-inside: avoid !important;
       break-inside: avoid !important;
     }
 
-    tr {
-      page-break-inside: avoid !important;
-      break-inside: avoid !important;
+    .tbl-client-row {
+      border-bottom: 1px solid #e2e8f0;
+      font-size: 0.75em;
+      padding: 6px 8px;
     }
 
     @media print {
@@ -331,7 +351,7 @@
   <div class="modal-overlay" id="modalDashboardOverlay">
     <div class="dashboard-modal-card">
       <div class="pdf-print-area" id="areaReportePDF">
-        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #0f172a; padding-bottom:8px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #0f172a; padding-bottom:8px; page-break-inside:avoid; break-inside:avoid;">
           <div>
             <h2 style="margin:0; font-size:1.2em; color:#0f172a;">REPORTE DASHBOARD DE CLIENTES</h2>
             <div style="font-size:0.75em; color:#64748b;" id="reporteFechaGen">Generado el: --</div>
@@ -378,11 +398,11 @@
           </div>
         </div>
 
-        <div style="margin-top:15px; font-weight:800; font-size:0.85em; color:#0f172a; border-bottom:1px solid #cbd5e1; padding-bottom:4px;">
+        <div style="margin-top:15px; font-weight:800; font-size:0.85em; color:#0f172a; border-bottom:1px solid #cbd5e1; padding-bottom:4px; page-break-inside:avoid; break-inside:avoid;">
           RESUMEN DETALLADO POR CLIENTE
         </div>
         
-        <table style="width:100%; border-collapse:collapse; margin-top:8px; font-size:0.75em;" id="tablaReportePDF">
+        <table style="margin-top:8px; font-size:0.75em;" id="tablaReportePDF">
           <thead>
             <tr style="background:#f1f5f9; text-align:left; border-bottom:1px solid #cbd5e1;">
               <th style="padding:6px;">Cliente / Documento</th>
