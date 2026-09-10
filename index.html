@@ -13,9 +13,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-  <!-- LIBRERÍAS EXTERNAS: EXCEL Y PDF -->
+  <!-- LIBRERÍAS EXTERNAS -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
   <style>
     :root {
@@ -179,7 +178,6 @@
     .reject-item { padding: 6px 0; border-bottom: 1px dashed #fca5a5; }
     .reject-item:last-child { border-bottom: none; }
 
-    /* DASHBOARD Y FORMATO PDF OPTIMIZADO */
     .dashboard-modal-card {
       background: #ffffff; border-radius: 20px; padding: 20px; width: 95%; max-width: 750px;
       max-height: 90vh; overflow-y: auto; text-align: left;
@@ -206,22 +204,10 @@
       border-collapse: collapse;
     }
 
-    .pdf-print-area tr {
-      page-break-inside: avoid !important;
-      break-inside: avoid !important;
-    }
-
     .pdf-print-area td, .pdf-print-area th {
       padding: 8px 6px;
       vertical-align: middle;
-    }
-
-    .pdf-print-area thead {
-      display: table-header-group;
-    }
-
-    .pdf-print-area tfoot {
-      display: table-footer-group;
+      border: 1px solid #e2e8f0;
     }
   </style>
 </head>
@@ -401,7 +387,7 @@
 
       <div style="display:flex; gap:10px; margin-top:15px; border-top:1px solid #cbd5e1; padding-top:12px;">
         <button class="btn-modal btn-cancel" onclick="cerrarDashboard()">CERRAR</button>
-        <button class="btn-modal btn-confirm" style="background:#16a34a;" onclick="descargarPDF()">📥 DESCARGAR PDF</button>
+        <button class="btn-modal btn-confirm" style="background:#16a34a;" onclick="descargarPDF()">📥 GUARDAR / IMPRIMIR PDF</button>
       </div>
     </div>
   </div>
@@ -1041,7 +1027,7 @@
       accionPendiente = null;
     }
 
-    /* DASHBOARD Y GENERACIÓN PDF CORREGIDA */
+    /* DASHBOARD */
     function abrirDashboard() {
       const fechaActual = new Date().toLocaleString('es-PE');
       document.getElementById('reporteFechaGen').innerText = `Generado el: ${fechaActual}`;
@@ -1122,8 +1108,6 @@
 
       listaClientesResumen.forEach(c => {
         const tr = document.createElement('tr');
-        tr.style.pageBreakInside = 'avoid';
-        tr.style.breakInside = 'avoid';
         tr.innerHTML = `
           <td style="padding:6px; font-weight:700;">
             ${c.cliente}<br>
@@ -1139,7 +1123,7 @@
 
       const tfoot = document.getElementById('tfootReportePDF');
       tfoot.innerHTML = `
-        <tr style="background:#f1f5f9; font-weight:800; border-top:2px solid #0f172a; page-break-inside:avoid; break-inside:avoid;">
+        <tr style="background:#f1f5f9; font-weight:800; border-top:2px solid #0f172a;">
           <td style="padding:8px;">TOTAL GENERAL (${listaClientesResumen.length} CLIENTES)</td>
           <td style="padding:8px; text-align:center;">${cntComprobantesGlobal}</td>
           <td style="padding:8px; text-align:center;">${totalItemsGlobal}</td>
@@ -1155,33 +1139,47 @@
       document.getElementById('modalDashboardOverlay').classList.remove('active');
     }
 
+    /* GENERACIÓN DE PDF VECTORIAL / NATIVO (SIN HOJAS EN BLANCO) */
     function descargarPDF() {
-      mostrarToast("📄 Generando PDF...");
+      mostrarToast("📄 Generando vista de impresión...");
 
-      const elemento = document.getElementById('areaReportePDF');
+      const contenidoHTML = document.getElementById('areaReportePDF').innerHTML;
+      const ventanaImpresion = window.open('', '_blank');
 
-      const opciones = {
-        margin:       [8, 8, 8, 8],
-        filename:     `Reporte_Clientes_Picking_${new Date().toISOString().slice(0,10)}.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { 
-          scale: 2, 
-          useCORS: true, 
-          logging: false,
-          scrollX: 0,
-          scrollY: 0,
-          windowWidth: document.documentElement.offsetWidth
-        },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
-      };
+      ventanaImpresion.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Reporte Clientes Picking</title>
+          <style>
+            body { font-family: system-ui, -apple-system, sans-serif; padding: 20px; color: #0f172a; }
+            .dashboard-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 15px 0; }
+            .dash-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; text-align: center; }
+            .dash-card-num { font-size: 1.2em; font-weight: bold; }
+            .dash-card-lbl { font-size: 0.75em; color: #64748b; }
+            table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.8em; }
+            th, td { border: 1px solid #cbd5e1; padding: 6px; vertical-align: middle; }
+            th { background: #f1f5f9; text-align: left; }
+            tr { page-break-inside: avoid; }
+            @media print {
+              body { padding: 0; }
+              @page { margin: 1cm; size: A4 portrait; }
+            }
+          </style>
+        </head>
+        <body>
+          ${contenidoHTML}
+        </body>
+        </html>
+      `);
 
-      html2pdf().set(opciones).from(elemento).save().then(() => {
-        mostrarToast("✓ PDF DESCARGADO");
-      }).catch(err => {
-        console.error(err);
-        alert("Error al generar PDF: " + err.message);
-      });
+      ventanaImpresion.document.close();
+      ventanaImpresion.focus();
+
+      setTimeout(() => {
+        ventanaImpresion.print();
+        ventanaImpresion.close();
+      }, 500);
     }
 
     function mostrarToast(mensaje) {
