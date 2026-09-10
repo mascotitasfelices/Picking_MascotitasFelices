@@ -358,14 +358,14 @@
             return;
           }
 
-          mostrarToast("🚀 Guardando datos en el servidor...");
+          mostrarToast("🚀 Acumulando nuevos datos...");
 
           await enviarPeticionAPI({
             accion: "AGREGAR_EXCEL",
             filas: jsonFilas
           });
 
-          mostrarToast("✓ EXCEL SUBIDO CORRECTAMENTE");
+          mostrarToast("✓ DATOS AGREGADOS CORRECTAMENTE");
           setTimeout(() => { cargarDatos(); }, 1500);
 
         } catch (err) {
