@@ -358,20 +358,11 @@
             return;
           }
 
-          // Filtrar filas con cantidad <= 0 localmente
-          const filasFiltradas = [jsonFilas[0]];
-          for (let i = 1; i < jsonFilas.length; i++) {
-            const cant = jsonFilas[i][8];
-            if (cant !== undefined && cant !== "" && Number(cant) > 0) {
-              filasFiltradas.push(jsonFilas[i]);
-            }
-          }
-
           mostrarToast("🚀 Guardando datos en el servidor...");
 
           await enviarPeticionAPI({
             accion: "AGREGAR_EXCEL",
-            filas: filasFiltradas
+            filas: jsonFilas
           });
 
           mostrarToast("✓ EXCEL SUBIDO CORRECTAMENTE");
