@@ -201,42 +201,26 @@
       box-sizing: border-box;
     }
 
-    /* CONTENEDOR FUERA DE PANTALLA TOTALMENTE VISIBLE EN EL DOM */
-    .pdf-export-container {
-      position: absolute;
-      top: 0;
-      left: -9999px;
-      width: 780px;
-      background: #ffffff !important;
-      color: #0f172a !important;
-      padding: 20px;
-      box-sizing: border-box;
-      z-index: -100;
-      display: block !important;
-      opacity: 1 !important;
-    }
-
-    .pdf-export-container table {
+    .pdf-print-area table {
       width: 100%;
       border-collapse: collapse;
     }
 
-    .pdf-export-container tr {
+    .pdf-print-area tr {
       page-break-inside: avoid !important;
       break-inside: avoid !important;
-      break-inside: avoid-page !important;
     }
 
-    .pdf-export-container td, .pdf-export-container th {
+    .pdf-print-area td, .pdf-print-area th {
       padding: 8px 6px;
       vertical-align: middle;
     }
 
-    .pdf-export-container thead {
+    .pdf-print-area thead {
       display: table-header-group;
     }
 
-    .pdf-export-container tfoot {
+    .pdf-print-area tfoot {
       display: table-footer-group;
     }
   </style>
@@ -1138,7 +1122,6 @@
 
       listaClientesResumen.forEach(c => {
         const tr = document.createElement('tr');
-        tr.className = 'tbl-client-row';
         tr.style.pageBreakInside = 'avoid';
         tr.style.breakInside = 'avoid';
         tr.innerHTML = `
@@ -1175,41 +1158,30 @@
     function descargarPDF() {
       mostrarToast("📄 Generando PDF...");
 
-      // Crear contenedor completamente legible para html2canvas fuera de pantalla
-      const pdfWrapper = document.createElement('div');
-      pdfWrapper.className = 'pdf-export-container';
-      
-      const fuente = document.getElementById('areaReportePDF');
-      pdfWrapper.innerHTML = fuente.innerHTML;
-      
-      document.body.appendChild(pdfWrapper);
+      const elemento = document.getElementById('areaReportePDF');
 
       const opciones = {
-        margin:       [10, 10, 10, 10],
+        margin:       [8, 8, 8, 8],
         filename:     `Reporte_Clientes_Picking_${new Date().toISOString().slice(0,10)}.pdf`,
         image:        { type: 'jpeg', quality: 0.98 },
         html2canvas:  { 
           scale: 2, 
           useCORS: true, 
           logging: false,
+          scrollX: 0,
           scrollY: 0,
-          scrollX: 0
+          windowWidth: document.documentElement.offsetWidth
         },
         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak:    { mode: ['css', 'legacy'] }
+        pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
       };
 
-      // Pequeño retardo asíncrono para asegurar que las imágenes/estilos del DOM estén cargados
-      setTimeout(() => {
-        html2pdf().set(opciones).from(pdfWrapper).save().then(() => {
-          document.body.removeChild(pdfWrapper);
-          mostrarToast("✓ PDF DESCARGADO");
-        }).catch(err => {
-          if (document.body.contains(pdfWrapper)) document.body.removeChild(pdfWrapper);
-          console.error(err);
-          alert("Error al generar PDF: " + err.message);
-        });
-      }, 100);
+      html2pdf().set(opciones).from(elemento).save().then(() => {
+        mostrarToast("✓ PDF DESCARGADO");
+      }).catch(err => {
+        console.error(err);
+        alert("Error al generar PDF: " + err.message);
+      });
     }
 
     function mostrarToast(mensaje) {
