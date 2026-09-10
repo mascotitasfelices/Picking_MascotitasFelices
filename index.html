@@ -163,7 +163,7 @@
 
     .toast-notification {
       position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8); background: rgba(15, 23, 42, 0.95);
-      color: #ffffff; padding: 14px 28px; border-radius: 30px; font-weight: 700; font-size: 0.9em; opacity: 0; visibility: hidden; transition: all 0.25s ease; z-index: 2000;
+      color: #ffffff; padding: 14px 28px; border-radius: 30px; font-weight: 700; font-size: 0.9em; opacity: 0; visibility: hidden; transition: all 0.25s ease; z-index: 2000; text-align: center;
     }
     .toast-notification.show { opacity: 1; visibility: visible; transform: translate(-50%, -50%) scale(1); }
     .date-picker-modal { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 1em; margin-top: 10px; }
@@ -319,19 +319,15 @@
 
     async function enviarPeticionAPI(payloadObj) {
       try {
-        const params = new URLSearchParams();
-        params.append('payload', JSON.stringify(payloadObj));
-
-        await fetch(URL_API, {
+        const response = await fetch(URL_API, {
           method: 'POST',
-          mode: 'no-cors',
           headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
+            'Content-Type': 'text/plain;charset=utf-8'
           },
-          body: params.toString()
+          body: JSON.stringify(payloadObj)
         });
-        
-        return { status: 'ok' };
+        const resJson = await response.json();
+        return resJson;
       } catch (e) {
         console.error("Error enviando datos:", e);
         return { status: 'error' };
@@ -358,15 +354,20 @@
             return;
           }
 
-          mostrarToast("🚀 Acumulando nuevos datos...");
+          mostrarToast("🚀 Procesando duplicados y agregando registros...");
 
-          await enviarPeticionAPI({
+          const resp = await enviarPeticionAPI({
             accion: "AGREGAR_EXCEL",
             filas: jsonFilas
           });
 
-          mostrarToast("✓ DATOS AGREGADOS CORRECTAMENTE");
-          setTimeout(() => { cargarDatos(); }, 1500);
+          if (resp && resp.resumen) {
+            alert(`✅ Proceso finalizado:\n• Registros Nuevos: ${resp.resumen.agregados}\n• Registros Anulados/Duplicados: ${resp.resumen.anulados}`);
+          } else {
+            mostrarToast("✓ EXCEL PROCESADO CORRECTAMENTE");
+          }
+
+          setTimeout(() => { cargarDatos(); }, 1000);
 
         } catch (err) {
           console.error(err);
@@ -432,6 +433,8 @@
         productosGlobales = data;
         
         ultimaFechaGeneral = "";
+        estadoEtiquetasComprobantes = {};
+
         productosGlobales.forEach(item => {
           const fStr = normalizarFechaISO(item.fecha);
           if (fStr > ultimaFechaGeneral) ultimaFechaGeneral = fStr;
