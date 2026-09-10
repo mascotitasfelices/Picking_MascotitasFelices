@@ -379,9 +379,6 @@
           <tbody id="tbodyReportePDF">
             <!-- Rellenado dinámico -->
           </tbody>
-          <tfoot id="tfootReportePDF">
-            <!-- Fila Total General estructurada como pie nativo -->
-          </tfoot>
         </table>
       </div>
 
@@ -1121,16 +1118,19 @@
         tbody.appendChild(tr);
       });
 
-      const tfoot = document.getElementById('tfootReportePDF');
-      tfoot.innerHTML = `
-        <tr style="background:#f1f5f9; font-weight:800; border-top:2px solid #0f172a;">
-          <td style="padding:8px;">TOTAL GENERAL (${listaClientesResumen.length} CLIENTES)</td>
-          <td style="padding:8px; text-align:center;">${cntComprobantesGlobal}</td>
-          <td style="padding:8px; text-align:center;">${totalItemsGlobal}</td>
-          <td style="padding:8px; text-align:right; color:#15803d; font-size:1.1em;">S/ ${sumaMontoGlobal.toFixed(2)}</td>
-          <td style="padding:8px;">—</td>
-        </tr>
+      // Fila de Total General añadida directamente al final de la tabla
+      const trTotal = document.createElement('tr');
+      trTotal.style.background = '#f1f5f9';
+      trTotal.style.fontWeight = '800';
+      trTotal.style.borderTop = '2px solid #0f172a';
+      trTotal.innerHTML = `
+        <td style="padding:8px;">TOTAL GENERAL (${listaClientesResumen.length} CLIENTES)</td>
+        <td style="padding:8px; text-align:center;">${cntComprobantesGlobal}</td>
+        <td style="padding:8px; text-align:center;">${totalItemsGlobal}</td>
+        <td style="padding:8px; text-align:right; color:#15803d; font-size:1.1em;">S/ ${sumaMontoGlobal.toFixed(2)}</td>
+        <td style="padding:8px;">—</td>
       `;
+      tbody.appendChild(trTotal);
 
       document.getElementById('modalDashboardOverlay').classList.add('active');
     }
@@ -1139,7 +1139,7 @@
       document.getElementById('modalDashboardOverlay').classList.remove('active');
     }
 
-    /* GENERACIÓN DE PDF CON REPETICIÓN DE CABECERAS Y PIE AL FINAL */
+    /* IMPRESIÓN Y GENERACIÓN DE PDF CON NUMERACIÓN DE PÁGINAS */
     function descargarPDF() {
       mostrarToast("📄 Generando vista de impresión...");
 
@@ -1161,14 +1161,21 @@
             th, td { border: 1px solid #cbd5e1; padding: 6px; vertical-align: middle; }
             th { background: #f1f5f9; text-align: left; }
             
-            /* REGLAS PARA ENCABEZADOS Y PIE EN IMPRESIÓN Y PDF */
             thead { display: table-header-group; }
-            tfoot { display: table-footer-group; }
             tr { page-break-inside: avoid; }
             
             @media print {
               body { padding: 0; }
-              @page { margin: 1cm; size: A4 portrait; }
+              @page {
+                margin: 1.2cm 1cm 1.5cm 1cm;
+                size: A4 portrait;
+                @bottom-center {
+                  content: "Página " counter(page) " de " counter(pages);
+                  font-family: system-ui, -apple-system, sans-serif;
+                  font-size: 8pt;
+                  color: #64748b;
+                }
+              }
             }
           </style>
         </head>
