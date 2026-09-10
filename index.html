@@ -12,20 +12,18 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Picking App">
-  
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <style>
     :root {
-      --primary: #0f172a;
-      --primary-accent: #2563eb;
-      --bg-color: #f8fafc;
+      --bg-main: #f8fafc;
       --card-bg: #ffffff;
-      --text-main: #1e293b;
+      --text-dark: #0f172a;
       --text-muted: #64748b;
-      --border-color: #e2e8f0;
-      
+      --primary-dark: #0f172a;
+      --brand-orange: #f97316;
+      --accent-blue: #0284c7;
       --status-completed-bg: #f0fdf4;
       --status-completed-border: #22c55e;
       --status-anulada-bg: #fef2f2;
@@ -36,415 +34,419 @@
 
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: var(--bg-color);
-      color: var(--text-main);
+      background-color: var(--bg-main);
+      color: var(--text-dark);
       margin: 0;
-      padding: 0;
-      padding-bottom: 80px;
+      padding: 16px 12px 80px 12px;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
     }
 
-    .header-bar {
-      background-color: var(--primary);
-      color: white;
-      padding: 12px 16px;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+    .pin-screen {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: var(--primary-dark); display: flex; flex-direction: column;
+      justify-content: center; align-items: center; z-index: 5000; color: white; padding: 20px;
     }
 
-    .header-title-container {
-      display: flex;
-      align-items: center;
-      gap: 10px;
+    .pin-card {
+      background: #1e293b; border: 1px solid #334155; border-radius: 20px;
+      padding: 24px; width: 100%; max-width: 320px; text-align: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
     }
 
-    .app-logo {
-      width: 28px;
-      height: 28px;
-      object-fit: contain;
+    .app-logo-pin { width: 80px; height: 80px; object-fit: contain; margin-bottom: 12px; border-radius: 16px; }
+
+    .pin-input {
+      width: 100%; font-size: 2em; letter-spacing: 12px; text-align: center;
+      padding: 10px; border-radius: 12px; border: 2px solid #475569;
+      background: #0f172a; color: #38bdf8; margin: 16px 0; outline: none;
     }
 
-    .header-bar h1 {
-      margin: 0;
-      font-size: 1.1em;
-      font-weight: 700;
-      letter-spacing: 0.5px;
+    .pin-btn {
+      width: 100%; padding: 12px; background: var(--brand-orange); color: white;
+      border: none; border-radius: 12px; font-weight: 800; font-size: 1em; cursor: pointer;
     }
 
-    .progress-section {
-      margin-top: 8px;
-      background: rgba(255,255,255,0.1);
-      padding: 8px;
-      border-radius: 6px;
+    .pin-error { color: #f87171; font-size: 0.85em; font-weight: 700; margin-top: 10px; display: none; }
+
+    .app-content { display: none; }
+
+    .header-brand {
+      background: var(--card-bg); border-radius: 20px; padding: 12px 16px;
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); border: 1px solid #e2e8f0;
     }
 
-    .progress-labels {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.75em;
-      margin-bottom: 4px;
-      color: #cbd5e1;
+    .header-logo-container { display: flex; align-items: center; gap: 12px; }
+    .header-logo-img { width: 40px; height: 40px; object-fit: contain; border-radius: 8px; }
+    .company-name { font-size: 0.75em; font-weight: 800; color: var(--brand-orange); letter-spacing: 0.5px; }
+    .header-title { font-size: 1.05em; font-weight: 800; color: var(--primary-dark); }
+
+    .header-actions { display: flex; gap: 8px; align-items: center; }
+    .btn-install { background: var(--brand-orange); color: white; border: none; padding: 8px 12px; border-radius: 10px; font-size: 0.75em; font-weight: 800; cursor: pointer; display: none; }
+    .btn-upload { background: var(--primary-dark); color: white; border: none; padding: 8px 12px; border-radius: 10px; font-size: 0.75em; font-weight: 800; cursor: pointer; }
+
+    .progress-card { background: var(--card-bg); border-radius: 16px; padding: 12px 16px; margin-bottom: 12px; border: 1px solid #e2e8f0; }
+    .progress-text { display: flex; justify-content: space-between; font-size: 0.8em; font-weight: 800; margin-bottom: 6px; }
+    .progress-bar-bg { background: #e2e8f0; height: 10px; border-radius: 5px; overflow: hidden; }
+    .progress-bar-fill { background: #16a34a; height: 100%; width: 0%; transition: width 0.3s ease; }
+
+    .search-section {
+      background: var(--card-bg); border-radius: 16px; padding: 12px 16px;
+      margin-bottom: 14px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 10px;
     }
 
-    .progress-bar-bg {
-      background: rgba(255,255,255,0.2);
-      height: 8px;
-      border-radius: 4px;
-      overflow: hidden;
-    }
+    .search-input-box input { width: 100%; border: none; outline: none; font-size: 0.95em; font-weight: 600; }
 
-    .progress-bar-fill {
-      background: #22c55e;
-      height: 100%;
-      width: 0%;
-      transition: width 0.3s ease;
-    }
+    .filter-controls-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding-top: 8px; border-top: 1px dashed #e2e8f0; }
+    .filter-control-group { display: flex; align-items: center; gap: 4px; font-size: 0.75em; font-weight: 700; color: var(--text-muted); }
+    .filter-control-group select, .filter-control-group input[type="date"] { border: 1px solid #cbd5e1; border-radius: 8px; padding: 4px 8px; font-size: 0.85em; outline: none; background: white; color: var(--text-dark); }
 
-    .container {
-      padding: 12px;
-      max-width: 800px;
-      margin: 0 auto;
-    }
+    .checkbox-filter { display: flex; align-items: center; gap: 6px; font-size: 0.75em; font-weight: 800; color: #0369a1; background: #e0f2fe; padding: 4px 8px; border-radius: 8px; cursor: pointer; }
+    .btn-clear-filters { font-size: 0.72em; font-weight: 700; padding: 5px 10px; border-radius: 8px; border: none; background: #fee2e2; color: #991b1b; cursor: pointer; margin-left: auto; }
 
-    .card {
-      background: var(--card-bg);
-      border-radius: 10px;
-      padding: 12px;
-      margin-bottom: 12px;
-      border: 1px solid var(--border-color);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
-
-    .search-box {
-      width: 100%;
-      padding: 10px 14px;
-      border-radius: 8px;
-      border: 1px solid var(--border-color);
-      font-size: 0.9em;
-      outline: none;
-      margin-bottom: 8px;
-    }
-
-    .search-box:focus {
-      border-color: var(--primary-accent);
-    }
-
-    .filter-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-top: 8px;
-    }
-
-    .filter-control-group {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .filter-control-group span {
-      font-size: 0.7em;
-      font-weight: 700;
-      color: var(--text-muted);
-      text-transform: uppercase;
-    }
-
-    .filter-select {
-      width: 100%;
-      padding: 8px;
-      border-radius: 6px;
-      border: 1px solid var(--border-color);
-      font-size: 0.8em;
-      background: white;
-      color: var(--text-main);
-      outline: none;
-    }
-
-    .excel-actions-container {
-      display: flex;
-      gap: 8px;
-      margin-top: 8px;
-    }
-
-    .btn-action {
-      flex: 1;
-      padding: 8px;
-      border: none;
-      border-radius: 6px;
-      font-size: 0.8em;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      color: white;
-      text-decoration: none;
-    }
-
-    .btn-excel { background-color: #16a34a; }
-    .btn-export { background-color: #0284c7; }
-
-    .client-card {
-      background: var(--card-bg);
-      border-radius: 10px;
-      padding: 12px;
-      margin-bottom: 10px;
-      border: 1px solid var(--border-color);
-      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-      transition: all 0.2s;
-    }
-
+    .client-list { display: flex; flex-direction: column; gap: 14px; }
+    .client-card { background: var(--card-bg); border-radius: 20px; padding: 14px 16px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
     .client-card.completo { background-color: var(--status-completed-bg) !important; border: 1.5px solid var(--status-completed-border); }
     .client-card.anulada { background-color: var(--status-anulada-bg) !important; border: 1.5px solid var(--status-anulada-border); opacity: 0.8; }
     .client-card.despachado { background-color: #f8fafc !important; opacity: 0.85; border: 1px solid #cbd5e1; }
 
-    .card-main { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-    .client-info { flex: 1; cursor: pointer; }
-    .client-title { font-weight: 700; font-size: 0.95em; color: var(--primary); display: flex; align-items: center; gap: 6px; }
+    .card-main { display: flex; align-items: flex-start; justify-content: space-between; cursor: pointer; }
+    .card-left { display: flex; align-items: flex-start; gap: 12px; width: 100%; }
+    .icon-circle { width: 42px; height: 42px; border-radius: 12px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 1.1em; flex-shrink: 0; }
+    
+    .client-header-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 2px; }
+    .client-name { font-weight: 800; font-size: 0.95em; color: var(--text-dark); text-transform: uppercase; }
 
-    .tag-badge-container { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
-    .tag-badge { font-size: 0.68em; padding: 2px 6px; border-radius: 4px; font-weight: 700; color: white; background: #64748b; }
-    .tag-badge.proximoDespacho { background: #0284c7; }
-    .tag-badge.delivery { background: #2563eb; }
-    .tag-badge.recojoLocal { background: #9333ea; }
+    .active-tags-header { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 4px; }
+    .tag-badge { font-size: 0.68em; font-weight: 800; padding: 3px 8px; border-radius: 8px; background: #0284c7; color: white; display: inline-flex; align-items: center; gap: 4px; }
     .tag-badge.despachado { background: #16a34a; }
     .tag-badge.acumular { background: #d97706; }
     .tag-badge.anulada { background: #dc2626; }
 
     .client-meta { font-size: 0.75em; color: var(--text-muted); margin-top: 2px; font-weight: 600; }
 
-    .comp-container { display: none; margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--border-color); flex-direction: column; gap: 8px; }
+    .comp-container { display: none; margin-top: 14px; padding-top: 12px; border-top: 1px solid #e2e8f0; flex-direction: column; gap: 12px; }
     .comp-container.active { display: flex; }
 
-    .comp-card { background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; }
+    .comp-card { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 14px; padding: 12px; }
     .comp-card.completo { background-color: var(--status-completed-bg); border-color: var(--status-completed-border); }
-    .comp-card.anulada { background-color: var(--status-anulada-bg); border-color: var(--status-anulada-border); opacity: 0.8; }
+    .comp-card.anulada { background-color: var(--status-anulada-bg); border-color: var(--status-anulada-border); text-decoration: line-through; }
 
     .comp-header { display: flex; justify-content: space-between; align-items: flex-start; cursor: pointer; }
-    .comp-title { font-size: 0.88em; font-weight: 700; color: #334155; }
+    .comp-title { font-size: 0.88em; font-weight: 800; color: var(--primary-dark); }
 
-    .options-grid-tags { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 8px; margin-bottom: 8px; }
-    .btn-option-tag {
-      padding: 4px 2px;
-      font-size: 0.65em;
-      font-weight: 700;
-      border-radius: 4px;
-      border: 1px solid #cbd5e1;
-      background: white;
-      color: #475569;
-      cursor: pointer;
-      text-align: center;
-    }
-
-    .btn-option-tag.active { color: white; border-color: transparent; }
-    .btn-option-tag.active.proximoDespacho { background: #0284c7; }
-    .btn-option-tag.active.acumular { background: #d97706; }
-    .btn-option-tag.active.delivery { background: #2563eb; }
-    .btn-option-tag.active.recojoLocal { background: #9333ea; }
-    .btn-option-tag.active.despachado { background: #16a34a; }
-    .btn-option-tag.active.anulada { background: #dc2626; }
+    .options-bar-bottom { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; padding-top: 8px; border-top: 1px dashed #cbd5e1; }
+    .btn-option-tag { font-size: 0.7em; font-weight: 700; padding: 5px 8px; border-radius: 8px; border: 1px solid #cbd5e1; background: #ffffff; color: #475569; cursor: pointer; }
+    .btn-option-tag.active { background: #0284c7; color: white; border-color: #0369a1; }
+    .btn-option-tag.active.despachado { background: #16a34a; border-color: #15803d; }
+    .btn-option-tag.active.acumular { background: #d97706; border-color: #b45309; }
+    .btn-option-tag.active.anulada { background: #dc2626; border-color: #991b1b; }
 
     .items-container { display: none; margin-top: 10px; padding-top: 8px; border-top: 1px solid #e2e8f0; flex-direction: column; gap: 8px; }
     .items-container.active { display: flex; }
 
-    .item-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: white;
-      padding: 8px 10px;
-      border-radius: 6px;
-      border: 1px solid #e2e8f0;
-      font-size: 0.82em;
-    }
+    .item-tap-card { background: #ffffff; border-radius: 10px; padding: 10px; border: 1.5px solid #cbd5e1; cursor: pointer; }
+    .item-tap-card.picked { background: #dcfce7; border-color: #16a34a; }
 
-    .item-row.completo { background-color: #f0fdf4; border-color: #bbf7d0; }
+    .item-title { font-weight: 800; font-size: 0.85em; color: var(--primary-dark); text-transform: uppercase; margin-bottom: 2px; }
+    .item-sub-info { display: flex; justify-content: space-between; font-size: 0.75em; font-weight: 700; color: var(--text-muted); }
 
-    .item-details { flex: 1; padding-right: 8px; }
-    .item-code { font-weight: 700; color: var(--primary-accent); font-size: 0.85em; }
-    .item-desc { color: #334155; font-weight: 500; }
-
-    .item-qty-badge {
-      background: #e2e8f0;
-      padding: 4px 8px;
-      border-radius: 6px;
-      font-weight: 700;
-      font-size: 0.9em;
-      min-width: 55px;
-      text-align: center;
-      cursor: pointer;
-    }
-
-    .item-row.completo .item-qty-badge { background: #22c55e; color: white; }
-
-    .toast {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #0f172a;
-      color: white;
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-size: 0.8em;
-      font-weight: 600;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      z-index: 1000;
-      display: none;
-    }
-
-    .modal-overlay {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(15, 23, 42, 0.6);
-      backdrop-filter: blur(2px);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-    }
-
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(4px); }
     .modal-overlay.active { display: flex; }
+    .modal-card { background: #ffffff; border-radius: 24px; padding: 24px; width: 90%; max-width: 440px; text-align: center; }
 
-    .modal-card {
-      background: white;
-      width: 90%;
-      max-width: 380px;
-      border-radius: 12px;
-      padding: 16px;
-      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2);
+    .modal-actions { display: flex; gap: 10px; margin-top: 12px; }
+    .btn-modal { flex: 1; padding: 12px; border-radius: 12px; font-weight: 700; border: none; cursor: pointer; font-size: 0.85em; }
+    .btn-confirm { background: var(--accent-blue); color: white; }
+    .btn-cancel { background: #f1f5f9; color: var(--text-dark); }
+
+    .toast-notification {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8); background: rgba(15, 23, 42, 0.95);
+      color: #ffffff; padding: 14px 28px; border-radius: 30px; font-weight: 700; font-size: 0.9em; opacity: 0; visibility: hidden; transition: all 0.25s ease; z-index: 2000;
     }
-
-    .modal-title { font-size: 0.9em; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px; }
-    .modal-product { font-size: 1.05em; font-weight: 700; color: var(--primary); margin-bottom: 12px; }
-
-    .counter-control { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 16px 0; }
-    .btn-counter { width: 44px; height: 44px; border-radius: 8px; border: 1px solid #cbd5e1; background: #f8fafc; font-size: 1.4em; font-weight: 700; color: var(--primary); cursor: pointer; }
-    .input-qty { width: 80px; text-align: center; font-size: 1.4em; font-weight: 700; border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px; }
-
-    .modal-actions { display: flex; gap: 8px; margin-top: 16px; }
-    .btn-modal { flex: 1; padding: 10px; border-radius: 8px; border: none; font-weight: 700; font-size: 0.85em; cursor: pointer; }
-    .btn-modal-cancel { background: #e2e8f0; color: #475569; }
-    .btn-modal-confirm { background: var(--primary-accent); color: white; }
-
-    .date-picker-modal { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 1em; margin: 10px 0; box-sizing: border-box; }
+    .toast-notification.show { opacity: 1; visibility: visible; transform: translate(-50%, -50%) scale(1); }
+    .date-picker-modal { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 1em; margin-top: 10px; }
   </style>
 </head>
 <body>
 
-  <header class="header-bar">
-    <div class="header-title-container">
-      <img src="https://lh3.googleusercontent.com/d/15UU95djdzlxZErpFFqwHfXPMukffnN-f" alt="Logo" class="app-logo">
-      <h1>SISTEMA PICKING PWA</h1>
+  <!-- PANTALLA DE AUTENTICACIÓN -->
+  <div class="pin-screen" id="pinScreen">
+    <div class="pin-card">
+      <img src="https://lh3.googleusercontent.com/d/15UU95djdzlxZErpFFqwHfXPMukffnN-f" class="app-logo-pin" alt="Logo">
+      <div style="font-size:0.8em; font-weight:800; color:var(--brand-orange); margin-bottom:4px;">SISTEMA DE PICKING</div>
+      <h3 style="margin:0 0 12px 0;">Ingrese PIN de Acceso</h3>
+      <input type="password" id="inputPin" class="pin-input" maxlength="4" placeholder="••••" onkeyup="if(event.key==='Enter') verificarPin()">
+      <button class="pin-btn" onclick="verificarPin()">INGRESAR</button>
+      <div class="pin-error" id="pinError">❌ PIN Incorrecto</div>
     </div>
-    
-    <div class="progress-section">
-      <div class="progress-labels">
-        <span id="progresoTexto">PROGRESO: 0/0 (0%)</span>
-        <span id="progresoBultos">ITEMS: 0/0</span>
+  </div>
+
+  <!-- APLICACIÓN PRINCIPAL -->
+  <div class="app-content" id="appContent">
+    <div class="header-brand">
+      <div class="header-logo-container">
+        <img src="https://lh3.googleusercontent.com/d/15UU95djdzlxZErpFFqwHfXPMukffnN-f" class="header-logo-img" alt="Logo">
+        <div>
+          <div class="company-name">SISTEMA DE PICKING</div>
+          <div class="header-title">CONTROL POR CLIENTE</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="btnInstalarApp" class="btn-install" onclick="instalarPWA()">📲 INSTALAR</button>
+        <button class="btn-upload" onclick="document.getElementById('fileExcel').click()">➕ SUBIR EXCEL</button>
+      </div>
+      <input type="file" id="fileExcel" accept=".xlsx, .xls" style="display:none" onchange="procesarExcel(this)">
+    </div>
+
+    <div class="progress-card">
+      <div class="progress-text">
+        <span>PROGRESO (FILTRADO)</span>
+        <span id="progressStats">0 / 0 ÍTEMS | 0 COMPROBANTES</span>
       </div>
       <div class="progress-bar-bg">
-        <div class="progress-bar-fill" id="progresoFill"></div>
+        <div class="progress-bar-fill" id="progressBar"></div>
       </div>
     </div>
-  </header>
 
-  <main class="container">
-    
-    <section class="card">
-      <input type="text" id="inputBusqueda" class="search-box" placeholder="🔍 Buscar por cliente, comprobante o código..." oninput="aplicarFiltros()">
+    <div class="search-section">
+      <div class="search-input-box">
+        <input type="text" id="txtBuscar" placeholder="🔍 Buscar cliente, producto, DNI o comprobante..." oninput="aplicarFiltros()">
+      </div>
       
-      <div class="filter-grid">
+      <div class="filter-controls-row">
+        <label class="checkbox-filter">
+          <input type="checkbox" id="chkAutoFilter" checked onchange="aplicarFiltros()">
+          <span>⚡ Último Día / Pendientes</span>
+        </label>
+
         <div class="filter-control-group">
-          <span>🏷️ Estado/Etiqueta:</span>
-          <select id="selectFiltroTag" class="filter-select" onchange="aplicarFiltros()">
-            <option value="">(Todas)</option>
-            <option value="pendiente">⏳ Pendientes de Pickear</option>
-            <option value="completo">✅ Pickeadas 100%</option>
+          <span>🏷️ Etiqueta:</span>
+          <select id="filterTag" onchange="aplicarFiltros()">
+            <option value="">TODAS</option>
             <option value="proximoDespacho">📅 Próximo Despacho</option>
             <option value="acumular">📦 Acumular</option>
             <option value="delivery">🛵 Delivery</option>
-            <option value="recojoLocal">🏪 Recojo Local</option>
+            <option value="recojoLocal">🏪 Recojo en Local</option>
             <option value="despachado">🚀 Despachado</option>
             <option value="anulada">🚫 Anulada</option>
+            <option value="sinEtiqueta">⚪ Sin Etiqueta</option>
           </select>
         </div>
 
         <div class="filter-control-group">
-          <span>📅 Fecha Emisión:</span>
-          <select id="selectFiltroFecha" class="filter-select" onchange="aplicarFiltros()">
-            <option value="">Todas las Fechas</option>
-          </select>
+          <span>📅 Emisión:</span>
+          <input type="date" id="filterFechaDesde" onchange="aplicarFiltros()">
+          <span>a</span>
+          <input type="date" id="filterFechaHasta" onchange="aplicarFiltros()">
         </div>
+
+        <div class="filter-control-group">
+          <span>🚚 F. Próx. Despacho:</span>
+          <input type="date" id="filterFechaDespacho" onchange="aplicarFiltros()">
+        </div>
+
+        <button class="btn-clear-filters" onclick="limpiarFiltros()">🧹 Limpiar Filtros</button>
       </div>
+    </div>
 
-      <div class="excel-actions-container">
-        <button class="btn-action btn-excel" onclick="document.getElementById('excelFileInput').click()">
-          📤 Cargar Excel
-        </button>
-        <input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display: none;" onchange="procesarExcel(event)">
-        
-        <button class="btn-action btn-export" onclick="exportarExcelProcesado()">
-          📥 Exportar Excel
-        </button>
-      </div>
-    </section>
+    <div class="client-list" id="listaClientes">Cargando datos...</div>
+  </div>
 
-    <section id="listaClientes">
-      <div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 0.9em;">
-        Cargando datos desde el servidor...
-      </div>
-    </section>
-
-  </main>
-
-  <div id="toast" class="toast">Notificación</div>
-
-  <div id="modalOverlay" class="modal-overlay">
+  <!-- DIÁLOGO MODAL -->
+  <div class="modal-overlay" id="modalOverlay">
     <div class="modal-card">
-      <div class="modal-title" id="modalTag">REGISTRAR AVANCE</div>
-      <div class="modal-product" id="modalProductName">Nombre Producto</div>
-      <div id="modalProductMeta"></div>
-
-      <div class="counter-control" id="modalCounterControl">
-        <button class="btn-counter" onclick="modificarCantidadModal(-1)">-</button>
-        <input type="number" id="inputCantModal" class="input-qty" min="0">
-        <button class="btn-counter" onclick="modificarCantidadModal(1)">+</button>
-      </div>
-
-      <div class="modal-actions">
-        <button class="btn-modal btn-modal-cancel" onclick="cerrarModal()">CANCELAR</button>
-        <button class="btn-modal btn-modal-confirm" id="btnModalConfirm" onclick="confirmarModal()">GUARDAR</button>
+      <div style="font-size:0.8em; font-weight:800; color:var(--brand-orange);" id="modalTag">CONFIRMAR ACCIÓN</div>
+      <div style="font-size: 1.15em; font-weight:800; margin:8px 0; color:var(--primary-dark);" id="modalProductName">PRODUCTO</div>
+      <div id="modalProductMeta" style="font-size: 0.85em; text-align:left; margin:10px 0;">Detalles...</div>
+      
+      <div class="modal-actions" id="modalActions">
+        <button class="btn-modal btn-cancel" onclick="cerrarModal(false)">CANCELAR</button>
+        <button class="btn-modal btn-confirm" id="btnModalConfirm" onclick="cerrarModal(true)">CONFIRMAR</button>
       </div>
     </div>
   </div>
 
+  <div class="toast-notification" id="toastNotification">✓ ACTUALIZADO</div>
+
   <script>
-    const URL_API = "https://script.google.com/macros/s/AKfycbwqQfE0o01X77g-m-C4OByoOa-mD4_xP8X6X8_X/exec"; // Reemplaza con tu URL real de Apps Script
+    const URL_API = "https://script.google.com/macros/s/AKfycbzgfhVbc7d2r3SSjWVpeuTbSkFxAWpBgTnSw47Jnc9m-KEvpm2UADNT0ezcbUNubd9Y/exec";
 
-    let datosGlobales = [];
+    let productosGlobales = [];
     let itemsFiltradosGlobal = [];
-    let clientesAbiertos = new Set();
-    let comprobantesAbiertos = new Set();
-    let estadoEtiquetasComprobantes = {};
     let accionPendiente = null;
+    let acordeonesClientes = new Set();
+    let acordeonesComprobantes = new Set();
+    let estadoEtiquetasComprobantes = {}; 
+    let ultimaFechaGeneral = "";
+    let deferredPrompt = null;
 
-    window.addEventListener('DOMContentLoaded', () => {
-      cargarDatos();
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(()=>{});
+      });
+    }
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      const btnInstalar = document.getElementById('btnInstalarApp');
+      if (btnInstalar) btnInstalar.style.display = 'inline-block';
     });
+
+    async function instalarPWA() {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        document.getElementById('btnInstalarApp').style.display = 'none';
+      }
+      deferredPrompt = null;
+    }
+
+    function verificarPin() {
+      const pin = document.getElementById('inputPin').value;
+      if (pin === "1312") {
+        document.getElementById('pinScreen').style.display = 'none';
+        document.getElementById('appContent').style.display = 'block';
+        cargarDatos();
+      } else {
+        document.getElementById('pinError').style.display = 'block';
+        document.getElementById('inputPin').value = '';
+      }
+    }
+
+    async function enviarPeticionAPI(payloadObj) {
+      try {
+        const params = new URLSearchParams();
+        params.append('payload', JSON.stringify(payloadObj));
+
+        await fetch(URL_API, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: params.toString()
+        });
+        
+        return { status: 'ok' };
+      } catch (e) {
+        console.error("Error enviando datos:", e);
+        return { status: 'error' };
+      }
+    }
+
+    async function procesarExcel(input) {
+      const file = input.files[0];
+      if (!file) return;
+
+      mostrarToast("⌛ Leyendo archivo Excel...");
+
+      const reader = new FileReader();
+      reader.onload = async function(e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const jsonFilas = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+          if (jsonFilas.length <= 1) {
+            alert("El archivo Excel no contiene filas de datos válidas.");
+            return;
+          }
+
+          // Filtrar filas con cantidad <= 0 localmente
+          const filasFiltradas = [jsonFilas[0]];
+          for (let i = 1; i < jsonFilas.length; i++) {
+            const cant = jsonFilas[i][8];
+            if (cant !== undefined && cant !== "" && Number(cant) > 0) {
+              filasFiltradas.push(jsonFilas[i]);
+            }
+          }
+
+          mostrarToast("🚀 Guardando datos en el servidor...");
+
+          await enviarPeticionAPI({
+            accion: "AGREGAR_EXCEL",
+            filas: filasFiltradas
+          });
+
+          mostrarToast("✓ EXCEL SUBIDO CORRECTAMENTE");
+          setTimeout(() => { cargarDatos(); }, 1500);
+
+        } catch (err) {
+          console.error(err);
+          alert("Error al procesar el archivo Excel: " + err.message);
+        } finally {
+          input.value = "";
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function normalizarKeyClient(val) {
+      return String(val || 'CLIENTE_GENERAL').trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
+    }
+
+    function normalizarKeyComp(val) {
+      return String(val || 'SIN_COMPROBANTE').trim().toUpperCase().replace(/[^A-Z0-9]/g, '_');
+    }
+
+    function normalizarFechaISO(f) {
+      if (!f) return "";
+      let str = String(f).trim();
+      
+      if (str.includes("/")) {
+        const parts = str.split("/");
+        if (parts.length === 3) return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+      }
+
+      if (str.length > 10 || str.includes("GMT")) {
+        const d = new Date(str);
+        if (!isNaN(d.getTime())) {
+          const yyyy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, '0');
+          const dd = String(d.getDate()).padStart(2, '0');
+          return `${yyyy}-${mm}-${dd}`;
+        }
+      }
+
+      if (str.includes("T")) str = str.split("T")[0];
+      return str;
+    }
+
+    function formatearEspañolDDMMAAAA(fISO) {
+      const iso = normalizarFechaISO(fISO);
+      if (!iso || !iso.includes("-")) return iso || "S/F";
+      const partes = iso.split("-");
+      if (partes.length === 3) {
+        return `${partes[2]}/${partes[1]}/${partes[0]}`;
+      }
+      return iso;
+    }
 
     async function cargarDatos() {
       try {
-        mostrarToast("Cargando información...");
         const res = await fetch(URL_API);
-        datosGlobales = await res.json();
+        const data = await res.json();
 
-        // Extraer estado de etiquetas por comprobante
-        datosGlobales.forEach(item => {
-          const keyComp = normalizarKeyComprobante(item.comprobante);
-          if (keyComp && !estadoEtiquetasComprobantes[keyComp]) {
+        if (data.error) {
+          document.getElementById('listaClientes').innerText = "Error Google Sheets: " + data.error;
+          return;
+        }
+
+        productosGlobales = data;
+        
+        ultimaFechaGeneral = "";
+        productosGlobales.forEach(item => {
+          const fStr = normalizarFechaISO(item.fecha);
+          if (fStr > ultimaFechaGeneral) ultimaFechaGeneral = fStr;
+
+          const keyComp = normalizarKeyComp(item.comprobante);
+          if (!estadoEtiquetasComprobantes[keyComp]) {
             estadoEtiquetasComprobantes[keyComp] = {
               proximoDespacho: !!item.proximoDespacho,
               fechaDespacho: item.fechaDespacho || "",
@@ -452,266 +454,376 @@
               delivery: !!item.delivery,
               recojoLocal: !!item.recojoLocal,
               despachado: !!item.despachado,
-              anulada: !!item.anulada,
-              motivoAnulacion: item.motivoAnulacion || ""
+              anulada: !!item.anulada
             };
           }
         });
 
-        poblarSelectorFechas();
         aplicarFiltros();
-        mostrarToast("✓ Datos sincronizados");
       } catch(e) {
-        console.error(e);
-        document.getElementById('listaClientes').innerHTML = `<div style="text-align: center; color: red; padding: 20px;">Error al conectar con la base de datos</div>`;
+        document.getElementById('listaClientes').innerText = "Error al conectar con la base de datos: " + e.message;
       }
     }
 
-    function normalizarKeyComprobante(comp) {
-      if (!comp) return "";
-      return comp.toString().trim().toUpperCase().replace(/[^A-Z0-9]/g, '_');
-    }
+    function actualizarBarraProgreso(itemsFiltrados) {
+      const setComprobantes = new Set();
+      let completados = 0;
 
-    function poblarSelectorFechas() {
-      const select = document.getElementById('selectFiltroFecha');
-      select.innerHTML = '<option value="">Todas las Fechas</option>';
-      
-      const fechas = [...new Set(datosGlobales.map(d => d.fecha).filter(Boolean))].sort().reverse();
-      fechas.forEach(f => {
-        const opt = document.createElement('option');
-        opt.value = f;
-        opt.textContent = formatearEspañolDDMMAAAA(f);
-        select.appendChild(opt);
+      itemsFiltrados.forEach(i => {
+        if (i.comprobante) setComprobantes.add(String(i.comprobante).trim().toUpperCase());
+        if (Number(i.cantPickeada) >= Number(i.cantSolicitada)) completados++;
       });
+
+      const total = itemsFiltrados.length;
+      const totalComprobantes = setComprobantes.size;
+      const porcentaje = total > 0 ? Math.round((completados / total) * 100) : 0;
+
+      document.getElementById('progressStats').innerText = `${completados} / ${total} ÍTEMS (${porcentaje}%) | ${totalComprobantes} COMPROBANTES`;
+      document.getElementById('progressBar').style.width = `${porcentaje}%`;
     }
 
     function aplicarFiltros() {
-      const texto = document.getElementById('inputBusqueda').value.toLowerCase().trim();
-      const tagSeleccionada = document.getElementById('selectFiltroTag').value;
-      const fechaSel = document.getElementById('selectFiltroFecha').value;
+      const texto = document.getElementById('txtBuscar').value.toLowerCase().trim();
+      const tagSeleccionada = document.getElementById('filterTag').value;
+      const fechaDesde = document.getElementById('filterFechaDesde').value;
+      const fechaHasta = document.getElementById('filterFechaHasta').value;
+      const fechaDespachoFiltro = document.getElementById('filterFechaDespacho').value;
+      const autoFiltrarUltimoDia = document.getElementById('chkAutoFilter').checked;
 
-      itemsFiltradosGlobal = datosGlobales.filter(item => {
-        const keyComp = normalizarKeyComprobante(item.comprobante);
+      itemsFiltradosGlobal = productosGlobales.filter(item => {
+        const keyComp = normalizarKeyComp(item.comprobante);
         const state = estadoEtiquetasComprobantes[keyComp] || {};
+        const fechaItem = normalizarFechaISO(item.fecha);
 
-        // Filtro de Texto
+        if (autoFiltrarUltimoDia) {
+          const esUltimoDia = (fechaItem === ultimaFechaGeneral);
+          const noFinalizado = !state.despachado && !state.anulada;
+          if (!esUltimoDia && !noFinalizado) return false;
+        }
+
         const coincideTexto = !texto || 
           (item.cliente && item.cliente.toLowerCase().includes(texto)) ||
-          (item.comprobante && item.comprobante.toLowerCase().includes(texto)) ||
-          (item.codigo && item.codigo.toLowerCase().includes(texto)) ||
-          (item.producto && item.producto.toLowerCase().includes(texto));
+          (item.docCliente && String(item.docCliente).includes(texto)) ||
+          (item.producto && item.producto.toLowerCase().includes(texto)) ||
+          (item.codigo && String(item.codigo).toLowerCase().includes(texto)) ||
+          (item.comprobante && String(item.comprobante).toLowerCase().includes(texto));
 
-        // Filtro de Fecha
-        const coincideFecha = !fechaSel || item.fecha === fechaSel;
-
-        // Filtro de Tags
         let coincideTag = true;
-        if (tagSeleccionada === 'pendiente') {
-          coincideTag = Number(item.cantPickeada) < Number(item.cantSolicitada) && !state.anulada && !state.despachado;
-        } else if (tagSeleccionada === 'completo') {
-          coincideTag = Number(item.cantPickeada) >= Number(item.cantSolicitada) && !state.anulada;
+        if (tagSeleccionada === 'sinEtiqueta') {
+          coincideTag = !state.proximoDespacho && !state.acumular && !state.delivery && !state.recojoLocal && !state.despachado && !state.anulada;
         } else if (tagSeleccionada) {
           coincideTag = !!state[tagSeleccionada];
         }
 
-        return coincideTexto && coincideFecha && coincideTag;
+        let coincideFecha = true;
+        if (fechaDesde && fechaItem) coincideFecha = coincideFecha && (fechaItem >= fechaDesde);
+        if (fechaHasta && fechaItem) coincideFecha = coincideFecha && (fechaItem <= fechaHasta);
+
+        let coincideFechaDespacho = true;
+        if (fechaDespachoFiltro) {
+          const fDespState = normalizarFechaISO(state.fechaDespacho);
+          coincideFechaDespacho = state.proximoDespacho && (fDespState === fechaDespachoFiltro);
+        }
+
+        return coincideTexto && coincideTag && coincideFecha && coincideFechaDespacho;
       });
 
       actualizarBarraProgreso(itemsFiltradosGlobal);
       agruparPorClienteYComprobante(itemsFiltradosGlobal);
     }
 
-    function actualizarBarraProgreso(items) {
-      let totSolicitado = 0;
-      let totPickeado = 0;
-
-      items.forEach(i => {
-        totSolicitado += Number(i.cantSolicitada) || 0;
-        totPickeado += Number(i.cantPickeada) || 0;
-      });
-
-      const porcentaje = totSolicitado > 0 ? Math.round((totPickeado / totSolicitado) * 100) : 0;
-      
-      document.getElementById('progresoTexto').innerText = `PROGRESO: ${totPickeado}/${totSolicitado} (${porcentaje}%)`;
-      document.getElementById('progresoBultos').innerText = `ITEMS: ${items.length}`;
-      document.getElementById('progresoFill').style.width = `${porcentaje}%`;
+    function limpiarFiltros() {
+      document.getElementById('txtBuscar').value = '';
+      document.getElementById('filterTag').value = '';
+      document.getElementById('filterFechaDesde').value = '';
+      document.getElementById('filterFechaHasta').value = '';
+      document.getElementById('filterFechaDespacho').value = '';
+      document.getElementById('chkAutoFilter').checked = true;
+      aplicarFiltros();
     }
 
-    function agruparPorClienteYComprobante(items) {
-      const contenedor = document.getElementById('listaClientes');
-      contenedor.innerHTML = '';
-
-      if (items.length === 0) {
-        contenedor.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 30px;">No se encontraron registros.</div>`;
-        return;
-      }
-
-      // Agrupar por Cliente -> Comprobante
+    function agruparPorClienteYComprobante(data) {
       const mapaClientes = {};
 
-      items.forEach(item => {
-        const cliKey = item.cliente || "CLIENTE GENERAL";
-        if (!mapaClientes[cliKey]) {
-          mapaClientes[cliKey] = { cliente: cliKey, comprobantes: {} };
+      data.forEach(item => {
+        const keyClient = normalizarKeyClient(item.cliente || item.docCliente);
+        const keyComp = normalizarKeyComp(item.comprobante);
+
+        if (!mapaClientes[keyClient]) {
+          mapaClientes[keyClient] = {
+            keyClient: keyClient,
+            docCliente: item.docCliente || 'S/D',
+            cliente: item.cliente || 'CLIENTE GENERAL',
+            comprobantesMap: {}
+          };
         }
 
-        const compKey = normalizarKeyComprobante(item.comprobante);
-        if (!mapaClientes[cliKey].comprobantes[compKey]) {
-          mapaClientes[cliKey].comprobantes[compKey] = {
-            comprobanteNombre: item.comprobante,
-            keyComp: compKey,
+        if (!mapaClientes[keyClient].comprobantesMap[keyComp]) {
+          mapaClientes[keyClient].comprobantesMap[keyComp] = {
+            keyComp: keyComp,
+            comprobanteOriginal: item.comprobante || 'S/C',
             fecha: item.fecha,
+            importeTotal: 0,
             items: []
           };
         }
 
-        mapaClientes[cliKey].comprobantes[compKey].items.push(item);
+        mapaClientes[keyClient].comprobantesMap[keyComp].importeTotal += Number(item.importe || 0);
+        mapaClientes[keyClient].comprobantesMap[keyComp].items.push(item);
       });
 
-      // Renderizar Tarjetas
-      Object.values(mapaClientes).forEach(cliObj => {
-        const clientCard = document.createElement('div');
-        clientCard.className = 'client-card';
+      const listaClientes = Object.values(mapaClientes).map(clienteObj => {
+        const comprobantesList = Object.values(clienteObj.comprobantesMap).map(compObj => {
+          const totalItemsComp = compObj.items.length;
+          const completadosComp = compObj.items.filter(i => Number(i.cantPickeada) >= Number(i.cantSolicitada)).length;
+          const stateComp = estadoEtiquetasComprobantes[compObj.keyComp] || {};
+
+          let prioridadComp = 1; 
+          if (stateComp.anulada) {
+            prioridadComp = 4;
+          } else if (stateComp.despachado) {
+            prioridadComp = 3; 
+          } else if (totalItemsComp > 0 && totalItemsComp === completadosComp) {
+            prioridadComp = 2; 
+          }
+
+          return {
+            ...compObj,
+            totalItems: totalItemsComp,
+            completados: completadosComp,
+            esCompleto: totalItemsComp > 0 && totalItemsComp === completadosComp,
+            esDespachado: !!stateComp.despachado,
+            esAnulada: !!stateComp.anulada,
+            prioridad: prioridadComp
+          };
+        });
+
+        comprobantesList.sort((a, b) => a.prioridad - b.prioridad);
+
+        const totalItemsCli = comprobantesList.reduce((acc, c) => acc + c.totalItems, 0);
+        const completadosCli = comprobantesList.reduce((acc, c) => acc + c.completados, 0);
+        const esCliAnulado = comprobantesList.length > 0 && comprobantesList.every(c => c.esAnulada);
+        const esCliDespachado = comprobantesList.length > 0 && comprobantesList.every(c => c.esDespachado || c.esAnulada);
+        const esCliCompleto = totalItemsCli > 0 && totalItemsCli === completadosCli;
+
+        let prioridadCli = 1; 
+        if (esCliAnulado) prioridadCli = 4;
+        else if (esCliDespachado) prioridadCli = 3; 
+        else if (esCliCompleto) prioridadCli = 2; 
+
+        return {
+          ...clienteObj,
+          comprobantes: comprobantesList,
+          totalItems: totalItemsCli,
+          completados: completadosCli,
+          esCompleto: esCliCompleto,
+          esDespachado: esCliDespachado,
+          esAnulada: esCliAnulado,
+          prioridad: prioridadCli
+        };
+      });
+
+      listaClientes.sort((a, b) => a.prioridad - b.prioridad);
+
+      renderizarListaJerarquica(listaClientes);
+    }
+
+    function renderizarListaJerarquica(clientes) {
+      const container = document.getElementById('listaClientes');
+      container.innerHTML = '';
+
+      if (clientes.length === 0) {
+        container.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-muted);">No hay registros que coincidan con la búsqueda.</div>';
+        return;
+      }
+
+      clientes.forEach(cli => {
+        const clienteAbierto = acordeonesClientes.has(cli.keyClient);
+
+        let claseCardCli = '';
+        if (cli.esAnulada) claseCardCli = 'anulada';
+        else if (cli.esDespachado) claseCardCli = 'despachado';
+        else if (cli.esCompleto) claseCardCli = 'completo';
 
         let htmlComprobantes = '';
-        let totalItemsCliente = 0;
-        let completadosCliente = 0;
+        cli.comprobantes.forEach(comp => {
+          const compAbierto = acordeonesComprobantes.has(comp.keyComp);
+          const stateComp = estadoEtiquetasComprobantes[comp.keyComp] || {};
 
-        Object.values(cliObj.comprobantes).forEach(compObj => {
-          const stateComp = estadoEtiquetasComprobantes[compObj.keyComp] || {};
-          let totalSolComp = 0;
-          let totalPickComp = 0;
+          let claseComp = '';
+          if (comp.esAnulada) claseComp = 'anulada';
+          else if (comp.esDespachado) claseComp = 'despachado';
+          else if (comp.esCompleto) claseComp = 'completo';
 
           let htmlItems = '';
-          compObj.items.forEach(item => {
-            totalItemsCliente++;
-            totalSolComp += Number(item.cantSolicitada);
-            totalPickComp += Number(item.cantPickeada);
-            if (Number(item.cantPickeada) >= Number(item.cantSolicitada)) completadosCliente++;
-
-            const itemCompleto = Number(item.cantPickeada) >= Number(item.cantSolicitada);
+          comp.items.forEach(item => {
+            const esPicked = Number(item.cantPickeada) >= Number(item.cantSolicitada);
             htmlItems += `
-              <div class="item-row ${itemCompleto ? 'completo' : ''}">
-                <div class="item-details">
-                  <div class="item-code">${item.codigo}</div>
-                  <div class="item-desc">${item.producto}</div>
-                </div>
-                <div class="item-qty-badge" onclick="abrirModalCantidad(${item.fila}, '${item.codigo}', '${item.producto.replace(/'/g, "\\'")}', ${item.cantSolicitada}, ${item.cantPickeada})">
-                  ${item.cantPickeada}/${item.cantSolicitada}
+              <div class="item-tap-card ${esPicked ? 'picked' : ''}" id="item-card-${item.fila}">
+                <div onclick="confirmarToqueItem(${item.fila}, '${item.producto.replace(/'/g, "\\'")}', ${item.cantSolicitada}, '${item.codigo}', '${cli.keyClient}', '${comp.keyComp}')">
+                  <div class="item-title" id="item-title-${item.fila}">${esPicked ? '✅' : '📦'} ${item.producto}</div>
+                  <div class="item-sub-info">
+                    <span>CÓD: ${item.codigo || '—'}</span>
+                    <span>CANT: ${item.cantSolicitada} ${item.unidad || 'EA'}</span>
+                  </div>
                 </div>
               </div>
             `;
           });
 
-          const compCompleto = totalSolComp > 0 && totalPickComp >= totalSolComp;
-          let compClase = compCompleto ? 'completo' : '';
-          if (stateComp.anulada) compClase = 'anulada';
-
-          let badgesComp = '';
-          if (stateComp.anulada) badgesComp += `<span class="tag-badge anulada" title="${stateComp.motivoAnulacion || ''}">🚫 ANULADA: ${stateComp.motivoAnulacion || 'S/M'}</span>`;
-          if (stateComp.proximoDespacho) badgesComp += `<span class="tag-badge proximoDespacho">📅 PRÓX. DESPACHO (${stateComp.fechaDespacho})</span>`;
-          if (stateComp.acumular) badgesComp += `<span class="tag-badge acumular">📦 ACUMULAR</span>`;
-          if (stateComp.delivery) badgesComp += `<span class="tag-badge delivery">🛵 DELIVERY</span>`;
-          if (stateComp.recojoLocal) badgesComp += `<span class="tag-badge recojoLocal">🏪 RECOJO LOCAL</span>`;
-          if (stateComp.despachado) badgesComp += `<span class="tag-badge despachado">🚀 DESPACHADO</span>`;
-
-          const isCompOpen = comprobantesAbiertos.has(compObj.keyComp);
+          let badgesCompHtml = '';
+          if (stateComp.anulada) badgesCompHtml += `<span class="tag-badge anulada">🚫 ANULADA</span>`;
+          if (stateComp.proximoDespacho) badgesCompHtml += `<span class="tag-badge">📅 PRÓX. DESPACHO (${formatearEspañolDDMMAAAA(stateComp.fechaDespacho)})</span>`;
+          if (stateComp.acumular) badgesCompHtml += `<span class="tag-badge acumular">📦 ACUMULAR</span>`;
+          if (stateComp.delivery) badgesCompHtml += `<span class="tag-badge">🛵 DELIVERY</span>`;
+          if (stateComp.recojoLocal) badgesCompHtml += `<span class="tag-badge">🏪 RECOJO LOCAL</span>`;
+          if (stateComp.despachado) badgesCompHtml += `<span class="tag-badge despachado">🚀 DESPACHADO</span>`;
 
           htmlComprobantes += `
-            <div class="comp-card ${compClase}">
-              <div class="comp-header" onclick="toggleComprobante('${compObj.keyComp}')">
+            <div class="comp-card ${claseComp}" id="card-comp-${comp.keyComp}">
+              <div class="comp-header" onclick="toggleAcordeonComprobante('${comp.keyComp}')">
                 <div>
-                  <div class="comp-title">${compObj.comprobanteNombre}</div>
-                  <div class="tag-badge-container">${badgesComp}</div>
+                  <div class="comp-title">📄 COMPROBANTE: ${comp.comprobanteOriginal} (${formatearEspañolDDMMAAAA(comp.fecha)})</div>
+                  <div class="client-meta">TOTAL: S/ ${comp.importeTotal.toFixed(2)} | PROGRESO: ${comp.completados}/${comp.totalItems} ÍTEMS</div>
+                  <div class="active-tags-header">${badgesCompHtml}</div>
                 </div>
-                <div style="font-size:0.8em; font-weight:700;">${totalPickComp}/${totalSolComp}</div>
+                <div style="font-size:0.8em; color:var(--text-muted);">${compAbierto ? '▲' : '▼'}</div>
               </div>
 
-              <div class="options-grid-tags">
-                <button class="btn-option-tag ${stateComp.proximoDespacho ? 'active proximoDespacho' : ''}" onclick="toggleTag('${compObj.keyComp}', 'proximoDespacho')">📅 Próx. Despacho</button>
-                <button class="btn-option-tag ${stateComp.acumular ? 'active acumular' : ''}" onclick="toggleTag('${compObj.keyComp}', 'acumular')">📦 Acumular</button>
-                <button class="btn-option-tag ${stateComp.delivery ? 'active delivery' : ''}" onclick="toggleTag('${compObj.keyComp}', 'delivery')">🛵 Delivery</button>
-                <button class="btn-option-tag ${stateComp.recojoLocal ? 'active recojoLocal' : ''}" onclick="toggleTag('${compObj.keyComp}', 'recojoLocal')">🏪 Recojo Local</button>
-                <button class="btn-option-tag ${stateComp.despachado ? 'active despachado' : ''}" onclick="toggleTag('${compObj.keyComp}', 'despachado')">🚀 Despachado</button>
-                <button class="btn-option-tag ${stateComp.anulada ? 'active anulada' : ''}" onclick="toggleTag('${compObj.keyComp}', 'anulada')">🚫 Anulada</button>
+              <div class="options-bar-bottom">
+                <button class="btn-option-tag ${stateComp.proximoDespacho ? 'active' : ''}" onclick="toggleTag('${comp.keyComp}', 'proximoDespacho')">📅 Próx. Despacho</button>
+                <button class="btn-option-tag ${stateComp.acumular ? 'active acumular' : ''}" onclick="toggleTag('${comp.keyComp}', 'acumular')">📦 Acumular</button>
+                <button class="btn-option-tag ${stateComp.delivery ? 'active' : ''}" onclick="toggleTag('${comp.keyComp}', 'delivery')">🛵 Delivery</button>
+                <button class="btn-option-tag ${stateComp.recojoLocal ? 'active' : ''}" onclick="toggleTag('${comp.keyComp}', 'recojoLocal')">🏪 Recojo Local</button>
+                <button class="btn-option-tag ${stateComp.despachado ? 'active despachado' : ''}" onclick="toggleTag('${comp.keyComp}', 'despachado')">🚀 Despachado</button>
+                <button class="btn-option-tag ${stateComp.anulada ? 'active anulada' : ''}" onclick="toggleTag('${comp.keyComp}', 'anulada')">🚫 Anulada</button>
               </div>
 
-              <div class="items-container ${isCompOpen ? 'active' : ''}">
+              <div class="items-container ${compAbierto ? 'active' : ''}" id="container-items-${comp.keyComp}">
                 ${htmlItems}
               </div>
             </div>
           `;
         });
 
-        const isCliOpen = clientesAbiertos.has(cliObj.cliente);
-
-        clientCard.innerHTML = `
-          <div class="card-main">
-            <div class="client-info" onclick="toggleCliente('${cliObj.cliente}')">
-              <div class="client-title">👤 ${cliObj.cliente}</div>
-              <div class="client-meta">Comprobantes: ${Object.keys(cliObj.comprobantes).length} | Items: ${totalItemsCliente}</div>
+        const cliCard = document.createElement('div');
+        cliCard.className = `client-card ${claseCardCli}`;
+        cliCard.id = `card-client-${cli.keyClient}`;
+        cliCard.innerHTML = `
+          <div class="card-main" onclick="toggleAcordeonCliente('${cli.keyClient}')">
+            <div class="card-left">
+              <div class="icon-circle">👤</div>
+              <div style="flex:1;">
+                <div class="client-header-title">
+                  <span class="client-name">${cli.cliente}</span>
+                  <span style="font-size:0.75em; color:var(--text-muted);">(${cli.docCliente})</span>
+                </div>
+                <div class="client-meta">COMPROBANTES: ${cli.comprobantes.length} | PROGRESO: ${cli.completados}/${cli.totalItems} ÍTEMS</div>
+              </div>
             </div>
+            <div style="font-size:0.8em; color:var(--text-muted); align-self:center;">${clienteAbierto ? '▲' : '▼'}</div>
           </div>
-          <div class="comp-container ${isCliOpen ? 'active' : ''}">
+
+          <div class="comp-container ${clienteAbierto ? 'active' : ''}" id="container-comp-${cli.keyClient}">
             ${htmlComprobantes}
           </div>
         `;
-
-        contenedor.appendChild(clientCard);
+        container.appendChild(cliCard);
       });
     }
 
-    function toggleCliente(cliente) {
-      if (clientesAbiertos.has(cliente)) {
-        clientesAbiertos.delete(cliente);
+    function toggleAcordeonCliente(keyClient) {
+      if (acordeonesClientes.has(keyClient)) {
+        acordeonesClientes.delete(keyClient);
       } else {
-        clientesAbiertos.add(cliente);
+        acordeonesClientes.add(keyClient);
       }
-      aplicarFiltros();
+      const el = document.getElementById(`container-comp-${keyClient}`);
+      if (el) el.classList.toggle('active');
     }
 
-    function toggleComprobante(keyComp) {
-      if (comprobantesAbiertos.has(keyComp)) {
-        comprobantesAbiertos.delete(keyComp);
+    function toggleAcordeonComprobante(keyComp) {
+      if (acordeonesComprobantes.has(keyComp)) {
+        acordeonesComprobantes.delete(keyComp);
       } else {
-        comprobantesAbiertos.add(keyComp);
+        acordeonesComprobantes.add(keyComp);
       }
-      aplicarFiltros();
+      const el = document.getElementById(`container-items-${keyComp}`);
+      if (el) el.classList.toggle('active');
+    }
+
+    function confirmarToqueItem(fila, nombreProd, cantReq, codigo, keyClient, keyComp) {
+      const item = productosGlobales.find(p => p.fila === fila);
+      if (!item) return;
+
+      const esPickedActualmente = Number(item.cantPickeada) >= Number(item.cantSolicitada);
+      const nuevaCant = esPickedActualmente ? 0 : cantReq;
+
+      document.getElementById('modalTag').innerText = esPickedActualmente ? "DESMARCAR PRODUCTO" : "MARCAR PRODUCTO";
+      document.getElementById('modalProductName').innerText = nombreProd;
+      document.getElementById('modalProductMeta').innerHTML = `
+        <b>CÓDIGO DE BARRAS:</b> ${codigo || '—'}<br>
+        <b>CANTIDAD:</b> ${cantReq} ${item.unidad || 'EA'}<br>
+        <b>ACCIÓN:</b> ${esPickedActualmente ? 'Marcar como PENDIENTE' : 'Marcar como PICKEADO'}
+      `;
+
+      document.getElementById('btnModalConfirm').innerText = esPickedActualmente ? "DESMARCAR" : "CONFIRMAR PICKEADO";
+
+      accionPendiente = async () => {
+        item.cantPickeada = nuevaCant;
+
+        const cardElem = document.getElementById(`item-card-${fila}`);
+        const titleElem = document.getElementById(`item-title-${fila}`);
+        if (cardElem && titleElem) {
+          if (nuevaCant >= cantReq) {
+            cardElem.classList.add('picked');
+            titleElem.innerText = `✅ ${nombreProd}`;
+          } else {
+            cardElem.classList.remove('picked');
+            titleElem.innerText = `📦 ${nombreProd}`;
+          }
+        }
+
+        actualizarBarraProgreso(itemsFiltradosGlobal);
+        agruparPorClienteYComprobante(itemsFiltradosGlobal);
+
+        await enviarPeticionAPI({
+          accion: "ACTUALIZAR_CANTIDAD",
+          fila: fila,
+          cantPickeada: nuevaCant
+        });
+        mostrarToast("✓ ESTADO ACTUALIZADO");
+      };
+
+      document.getElementById('modalOverlay').classList.add('active');
     }
 
     async function toggleTag(keyComp, tagNombre) {
       if (!estadoEtiquetasComprobantes[keyComp]) {
-        estadoEtiquetasComprobantes[keyComp] = { 
-          proximoDespacho: false, fechaDespacho: "", acumular: false, 
-          delivery: false, recojoLocal: false, despachado: false, 
-          anulada: false, motivoAnulacion: "" 
-        };
+        estadoEtiquetasComprobantes[keyComp] = { proximoDespacho: false, fechaDespacho: "", acumular: false, delivery: false, recojoLocal: false, despachado: false, anulada: false };
       }
 
       const current = estadoEtiquetasComprobantes[keyComp];
 
-      if (tagNombre === 'anulada') {
-        if (!current.anulada) {
-          const motivo = prompt("Ingrese la razón/motivo de la anulación:");
-          if (!motivo || !motivo.trim()) {
-            alert("Es obligatorio ingresar un motivo para anular.");
-            return;
-          }
-          current.anulada = true;
-          current.motivoAnulacion = motivo.trim();
-        } else {
-          current.anulada = false;
-          current.motivoAnulacion = "";
-        }
-      } else if (tagNombre === 'proximoDespacho') {
+      if (tagNombre === 'proximoDespacho') {
         if (!current.proximoDespacho) {
-          const fecha = prompt("Ingrese fecha de despacho (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
-          if (fecha) {
+          document.getElementById('modalTag').innerText = "PROGRAMAR DESPACHO";
+          document.getElementById('modalProductName').innerText = "Seleccione Fecha de Despacho";
+          document.getElementById('modalProductMeta').innerHTML = `
+            <input type="date" id="inputFechaDespachoModal" class="date-picker-modal" value="${new Date().toISOString().split('T')[0]}">
+          `;
+          document.getElementById('btnModalConfirm').innerText = "GUARDAR FECHA";
+
+          accionPendiente = () => {
+            const fechaInput = document.getElementById('inputFechaDespachoModal').value;
+            if (!fechaInput) return;
             current.proximoDespacho = true;
-            current.fechaDespacho = fecha;
-          } else {
-            return;
-          }
+            current.fechaDespacho = fechaInput;
+            guardarEstadoEtiquetas(keyComp);
+          };
+
+          document.getElementById('modalOverlay').classList.add('active');
+          return;
         } else {
           current.proximoDespacho = false;
           current.fechaDespacho = "";
@@ -720,173 +832,38 @@
         current[tagNombre] = !current[tagNombre];
       }
 
-      aplicarFiltros();
       guardarEstadoEtiquetas(keyComp);
     }
 
     async function guardarEstadoEtiquetas(keyComp) {
-      try {
-        mostrarToast("Actualizando etiqueta...");
-        await fetch(URL_API, {
-          method: "POST",
-          body: JSON.stringify({
-            accion: "ACTUALIZAR_ETIQUETAS_COMPROBANTE",
-            comprobanteKey: keyComp,
-            estadoEtiquetas: estadoEtiquetasComprobantes[keyComp]
-          })
-        });
-        mostrarToast("✓ Etiqueta guardada");
-      } catch(e) {
-        console.error(e);
-        mostrarToast("❌ Error al guardar etiqueta");
-      }
-    }
-
-    function abrirModalCantidad(fila, codigo, producto, cantSol, cantPick) {
-      document.getElementById('modalTag').innerText = "INGRESAR PICKING";
-      document.getElementById('modalProductName').innerText = `${codigo} - ${producto}`;
-      document.getElementById('modalProductMeta').innerText = `Solicitado: ${cantSol}`;
+      const state = estadoEtiquetasComprobantes[keyComp];
       
-      document.getElementById('modalCounterControl').style.display = 'flex';
-      const input = document.getElementById('inputCantModal');
-      input.value = cantPick;
+      aplicarFiltros();
 
-      accionPendiente = async () => {
-        const nuevaCant = Number(input.value);
-        const item = datosGlobales.find(d => d.fila === fila);
-        if (item) {
-          item.cantPickeada = nuevaCant;
-          aplicarFiltros();
-          mostrarToast("Guardando cantidad...");
-          
-          await fetch(URL_API, {
-            method: "POST",
-            body: JSON.stringify({
-              accion: "ACTUALIZAR_CANTIDAD",
-              fila: fila,
-              cantPickeada: nuevaCant
-            })
-          });
-          mostrarToast("✓ Cantidad actualizada");
-        }
-      };
-
-      document.getElementById('modalOverlay').classList.add('active');
+      mostrarToast("💾 Guardando...");
+      await enviarPeticionAPI({
+        accion: "ACTUALIZAR_ETIQUETAS_COMPROBANTE",
+        comprobanteKey: keyComp,
+        estadoEtiquetas: state
+      });
+      mostrarToast("✓ ETIQUETAS GUARDADAS");
     }
 
-    function modificarCantidadModal(delta) {
-      const input = document.getElementById('inputCantModal');
-      let val = Number(input.value) || 0;
-      val = Math.max(0, val + delta);
-      input.value = val;
-    }
-
-    function cerrarModal() {
+    function cerrarModal(confirmado) {
       document.getElementById('modalOverlay').classList.remove('active');
+      if (confirmado && typeof accionPendiente === 'function') {
+        accionPendiente();
+      }
       accionPendiente = null;
     }
 
-    function confirmarModal() {
-      if (accionPendiente) accionPendiente();
-      cerrarModal();
-    }
-
-    async function procesarExcel(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        try {
-          mostrarToast("Leyendo Excel...");
-          const data = new Uint8Array(e.target.result);
-          const workbook = XLSX.read(data, { type: 'array' });
-          const firstSheet = workbook.SheetNames[0];
-          const jsonFilas = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet], { header: 1 });
-
-          if (jsonFilas.length <= 1) {
-            alert("El archivo Excel no contiene filas válidas.");
-            return;
-          }
-
-          mostrarToast("🚀 Enviando datos al servidor...");
-          
-          const response = await fetch(URL_API, {
-            method: "POST",
-            body: JSON.stringify({
-              accion: "AGREGAR_EXCEL",
-              filas: jsonFilas
-            })
-          });
-
-          const result = await response.json();
-          
-          if (result.status === "success") {
-            const res = result.resumen || {};
-            alert(`Carga completada:\n- Registros agregados: ${res.agregados || 0}\n- Omitidos por cantidad 0: ${res.omitidosCero || 0}\n- Comprobantes omitidos por duplicados: ${res.omitidosDuplicados || 0}`);
-            cargarDatos();
-          } else {
-            alert("Error del servidor: " + result.message);
-          }
-
-        } catch (err) {
-          console.error(err);
-          alert("Error procesando Excel: " + err.message);
-        } finally {
-          event.target.value = "";
-        }
-      };
-      reader.readAsArrayBuffer(file);
-    }
-
-    function exportarExcelProcesado() {
-      if (datosGlobales.length === 0) {
-        alert("No hay datos para exportar.");
-        return;
-      }
-
-      const headers = [
-        "FECHA", "COMPROBANTE", "DOC CLIENTE", "CLIENTE", "CODIGO", 
-        "PRODUCTO", "CANT SOLICITADA", "UNIDAD", "IMPORTE", 
-        "CANT PICKEADA", "PROX DESPACHO", "FECHA DESPACHO", "ACUMULAR", 
-        "DELIVERY", "RECOJO LOCAL", "DESPACHADO", "ANULADA", "MOTIVO ANULACION"
-      ];
-
-      const rows = datosGlobales.map(d => {
-        const state = estadoEtiquetasComprobantes[normalizarKeyComprobante(d.comprobante)] || {};
-        return [
-          d.fecha, d.comprobante, d.docCliente, d.cliente, d.codigo,
-          d.producto, d.cantSolicitada, d.unidad, d.importe,
-          d.cantPickeada, 
-          state.proximoDespacho ? "SI" : "NO",
-          state.fechaDespacho || "",
-          state.acumular ? "SI" : "NO",
-          state.delivery ? "SI" : "NO",
-          state.recojoLocal ? "SI" : "NO",
-          state.despachado ? "SI" : "NO",
-          state.anulada ? "SI" : "NO",
-          state.motivoAnulacion || ""
-        ];
-      });
-
-      const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Picking");
-      XLSX.writeFile(wb, `Picking_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
-    }
-
-    function formatearEspañolDDMMAAAA(fechaStr) {
-      if (!fechaStr) return "";
-      const partes = fechaStr.split('-');
-      if (partes.length === 3) return `${partes[2]}/${partes[1]}/${partes[0]}`;
-      return fechaStr;
-    }
-
-    function mostrarToast(msg) {
-      const toast = document.getElementById('toast');
-      toast.innerText = msg;
-      toast.style.display = 'block';
-      setTimeout(() => { toast.style.display = 'none'; }, 2500);
+    function mostrarToast(mensaje) {
+      const toast = document.getElementById('toastNotification');
+      toast.innerText = mensaje;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2000);
     }
   </script>
 </body>
