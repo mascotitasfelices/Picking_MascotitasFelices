@@ -13,7 +13,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
+  <!-- LIBRERÍAS EXTERNAS: EXCEL Y PDF -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
   <style>
     :root {
@@ -75,6 +77,7 @@
       background: var(--card-bg); border-radius: 20px; padding: 12px 16px;
       display: flex; align-items: center; justify-content: space-between;
       margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); border: 1px solid #e2e8f0;
+      flex-wrap: wrap; gap: 10px;
     }
 
     .header-logo-container { display: flex; align-items: center; gap: 12px; }
@@ -82,9 +85,10 @@
     .company-name { font-size: 0.75em; font-weight: 800; color: var(--brand-orange); letter-spacing: 0.5px; }
     .header-title { font-size: 1.05em; font-weight: 800; color: var(--primary-dark); }
 
-    .header-actions { display: flex; gap: 8px; align-items: center; }
+    .header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     .btn-install { background: var(--brand-orange); color: white; border: none; padding: 8px 12px; border-radius: 10px; font-size: 0.75em; font-weight: 800; cursor: pointer; display: none; }
     .btn-upload { background: var(--primary-dark); color: white; border: none; padding: 8px 12px; border-radius: 10px; font-size: 0.75em; font-weight: 800; cursor: pointer; }
+    .btn-dashboard { background: #0284c7; color: white; border: none; padding: 8px 12px; border-radius: 10px; font-size: 0.75em; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 4px; }
 
     .progress-card { background: var(--card-bg); border-radius: 16px; padding: 12px 16px; margin-bottom: 12px; border: 1px solid #e2e8f0; }
     .progress-text { display: flex; justify-content: space-between; font-size: 0.8em; font-weight: 800; margin-bottom: 6px; }
@@ -168,13 +172,28 @@
     .toast-notification.show { opacity: 1; visibility: visible; transform: translate(-50%, -50%) scale(1); }
     .date-picker-modal { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 1em; margin-top: 10px; }
 
-    /* ESTILOS DE LA LISTA DE RECHAZADOS EN MODAL */
     .reject-list-box {
       text-align: left; background: #fff5f5; border: 1px solid #fecaca; border-radius: 12px;
       padding: 10px; margin-top: 10px; overflow-y: auto; max-height: 250px; font-size: 0.8em;
     }
     .reject-item { padding: 6px 0; border-bottom: 1px dashed #fca5a5; }
     .reject-item:last-child { border-bottom: none; }
+
+    /* ESTILOS DEL DASHBOARD REPORT */
+    .dashboard-modal-card {
+      background: #ffffff; border-radius: 20px; padding: 20px; width: 95%; max-width: 650px;
+      max-height: 90vh; overflow-y: auto; text-align: left;
+    }
+    .dashboard-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 15px 0;
+    }
+    .dash-card {
+      background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; text-align: center;
+    }
+    .dash-card-num { font-size: 1.5em; font-weight: 800; color: #0f172a; }
+    .dash-card-lbl { font-size: 0.72em; font-weight: 700; color: #64748b; margin-top: 2px; }
+
+    .pdf-print-area { padding: 10px; background: white; }
   </style>
 </head>
 <body>
@@ -202,6 +221,7 @@
         </div>
       </div>
       <div class="header-actions">
+        <button class="btn-dashboard" onclick="abrirDashboard()">📊 DASHBOARD / PDF</button>
         <button id="btnInstalarApp" class="btn-install" onclick="instalarPWA()">📲 INSTALAR</button>
         <button class="btn-upload" onclick="document.getElementById('fileExcel').click()">➕ SUBIR EXCEL</button>
       </div>
@@ -262,7 +282,7 @@
     <div class="client-list" id="listaClientes">Cargando datos...</div>
   </div>
 
-  <!-- DIÁLOGO MODAL -->
+  <!-- DIÁLOGO MODAL GENERAL -->
   <div class="modal-overlay" id="modalOverlay">
     <div class="modal-card">
       <div style="font-size:0.8em; font-weight:800; color:var(--brand-orange);" id="modalTag">CONFIRMAR ACCIÓN</div>
@@ -272,6 +292,79 @@
       <div class="modal-actions" id="modalActions">
         <button class="btn-modal btn-cancel" id="btnModalCancel" onclick="cerrarModal(false)">CANCELAR</button>
         <button class="btn-modal btn-confirm" id="btnModalConfirm" onclick="cerrarModal(true)">CONFIRMAR</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DASHBOARD REPORT -->
+  <div class="modal-overlay" id="modalDashboardOverlay">
+    <div class="dashboard-modal-card">
+      <div class="pdf-print-area" id="areaReportePDF">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #0f172a; padding-bottom:8px;">
+          <div>
+            <h2 style="margin:0; font-size:1.2em; color:#0f172a;">REPORTE DE DASHBOARD - PICKING</h2>
+            <div style="font-size:0.75em; color:#64748b;" id="reporteFechaGen">Generado el: --</div>
+          </div>
+          <img src="https://lh3.googleusercontent.com/d/15UU95djdzlxZErpFFqwHfXPMukffnN-f" style="height:35px;" alt="Logo">
+        </div>
+
+        <div class="dashboard-grid">
+          <div class="dash-card">
+            <div class="dash-card-num" id="dashTotalComprobantes">0</div>
+            <div class="dash-card-lbl">📄 Comprobantes</div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-card-num" id="dashTotalItems">0</div>
+            <div class="dash-card-lbl">📦 Total Ítems</div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-card-num" style="color:#d97706;" id="dashTotalAcumular">0</div>
+            <div class="dash-card-lbl">📦 Acumular</div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-card-num" style="color:#0284c7;" id="dashTotalDelivery">0</div>
+            <div class="dash-card-lbl">🛵 Delivery</div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-card-num" style="color:#4f46e5;" id="dashTotalRecojo">0</div>
+            <div class="dash-card-lbl">🏪 Recojo Local</div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-card-num" style="color:#2563eb;" id="dashTotalProxDesp">0</div>
+            <div class="dash-card-lbl">📅 Próx. Despacho</div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-card-num" style="color:#16a34a;" id="dashTotalDespachado">0</div>
+            <div class="dash-card-lbl">🚀 Despachados</div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-card-num" style="color:#dc2626;" id="dashTotalAnulada">0</div>
+            <div class="dash-card-lbl">🚫 Anuladas</div>
+          </div>
+        </div>
+
+        <div style="margin-top:15px; font-weight:800; font-size:0.85em; color:#0f172a; border-bottom:1px solid #cbd5e1; padding-bottom:4px;">
+          DETALLE DE COMPROBANTES FILTRADOS
+        </div>
+        
+        <table style="width:100%; border-collapse:collapse; margin-top:8px; font-size:0.75em;" id="tablaReportePDF">
+          <thead>
+            <tr style="background:#f1f5f9; text-align:left; border-bottom:1px solid #cbd5e1;">
+              <th style="padding:6px;">Comprobante</th>
+              <th style="padding:6px;">Cliente</th>
+              <th style="padding:6px;">Ítems</th>
+              <th style="padding:6px;">Estado / Etiquetas</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyReportePDF">
+            <!-- Rellenado dinámico -->
+          </tbody>
+        </table>
+      </div>
+
+      <div style="display:flex; gap:10px; margin-top:15px; border-top:1px solid #cbd5e1; padding-top:12px;">
+        <button class="btn-modal btn-cancel" onclick="cerrarDashboard()">CERRAR</button>
+        <button class="btn-modal btn-confirm" style="background:#16a34a;" onclick="descargarPDF()">📥 DESCARGAR PDF</button>
       </div>
     </div>
   </div>
@@ -895,6 +988,95 @@
         accionPendiente();
       }
       accionPendiente = null;
+    }
+
+    /* LÓGICA DEL DASHBOARD Y GENERACIÓN PDF */
+    function abrirDashboard() {
+      const fechaActual = new Date().toLocaleString('es-PE');
+      document.getElementById('reporteFechaGen').innerText = `Generado el: ${fechaActual}`;
+
+      const setComprobantes = new Set();
+      let totalItems = itemsFiltradosGlobal.length;
+      let cntAcumular = 0;
+      let cntDelivery = 0;
+      let cntRecojo = 0;
+      let cntProxDesp = 0;
+      let cntDespachado = 0;
+      let cntAnulada = 0;
+
+      const compResumenMap = {};
+
+      itemsFiltradosGlobal.forEach(item => {
+        const keyComp = normalizarKeyComp(item.comprobante);
+        setComprobantes.add(keyComp);
+
+        if (!compResumenMap[keyComp]) {
+          compResumenMap[keyComp] = {
+            comprobante: item.comprobante || 'S/C',
+            cliente: item.cliente || 'CLIENTE GENERAL',
+            cantItems: 0,
+            etiquetas: []
+          };
+
+          const st = estadoEtiquetasComprobantes[keyComp] || {};
+          if (st.acumular) { cntAcumular++; compResumenMap[keyComp].etiquetas.push('📦 Acumular'); }
+          if (st.delivery) { cntDelivery++; compResumenMap[keyComp].etiquetas.push('🛵 Delivery'); }
+          if (st.recojoLocal) { cntRecojo++; compResumenMap[keyComp].etiquetas.push('🏪 Recojo Local'); }
+          if (st.proximoDespacho) { cntProxDesp++; compResumenMap[keyComp].etiquetas.push(`📅 Próx. Despacho (${formatearEspañolDDMMAAAA(st.fechaDespacho)})`); }
+          if (st.despachado) { cntDespachado++; compResumenMap[keyComp].etiquetas.push('🚀 Despachado'); }
+          if (st.anulada) { cntAnulada++; compResumenMap[keyComp].etiquetas.push('🚫 Anulada'); }
+          if (compResumenMap[keyComp].etiquetas.length === 0) compResumenMap[keyComp].etiquetas.push('⚪ Sin Etiqueta');
+        }
+
+        compResumenMap[keyComp].cantItems++;
+      });
+
+      document.getElementById('dashTotalComprobantes').innerText = setComprobantes.size;
+      document.getElementById('dashTotalItems').innerText = totalItems;
+      document.getElementById('dashTotalAcumular').innerText = cntAcumular;
+      document.getElementById('dashTotalDelivery').innerText = cntDelivery;
+      document.getElementById('dashTotalRecojo').innerText = cntRecojo;
+      document.getElementById('dashTotalProxDesp').innerText = cntProxDesp;
+      document.getElementById('dashTotalDespachado').innerText = cntDespachado;
+      document.getElementById('dashTotalAnulada').innerText = cntAnulada;
+
+      const tbody = document.getElementById('tbodyReportePDF');
+      tbody.innerHTML = '';
+
+      Object.values(compResumenMap).forEach(c => {
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid #e2e8f0';
+        tr.innerHTML = `
+          <td style="padding:6px; font-weight:700;">${c.comprobante}</td>
+          <td style="padding:6px;">${c.cliente}</td>
+          <td style="padding:6px; text-align:center;">${c.cantItems}</td>
+          <td style="padding:6px;">${c.etiquetas.join(', ')}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById('modalDashboardOverlay').classList.add('active');
+    }
+
+    function cerrarDashboard() {
+      document.getElementById('modalDashboardOverlay').classList.remove('active');
+    }
+
+    function descargarPDF() {
+      const elemento = document.getElementById('areaReportePDF');
+      mostrarToast("📄 Generando PDF...");
+
+      const opciones = {
+        margin:       10,
+        filename:     `Reporte_Picking_${new Date().toISOString().slice(0,10)}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2 },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      html2pdf().set(opciones).from(elemento).save().then(() => {
+        mostrarToast("✓ PDF DESCARGADO");
+      });
     }
 
     function mostrarToast(mensaje) {
