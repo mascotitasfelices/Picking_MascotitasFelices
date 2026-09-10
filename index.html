@@ -154,7 +154,7 @@
 
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(4px); }
     .modal-overlay.active { display: flex; }
-    .modal-card { background: #ffffff; border-radius: 24px; padding: 24px; width: 90%; max-width: 440px; text-align: center; }
+    .modal-card { background: #ffffff; border-radius: 24px; padding: 24px; width: 90%; max-width: 480px; text-align: center; max-height: 85vh; display: flex; flex-direction: column; }
 
     .modal-actions { display: flex; gap: 10px; margin-top: 12px; }
     .btn-modal { flex: 1; padding: 12px; border-radius: 12px; font-weight: 700; border: none; cursor: pointer; font-size: 0.85em; }
@@ -167,6 +167,14 @@
     }
     .toast-notification.show { opacity: 1; visibility: visible; transform: translate(-50%, -50%) scale(1); }
     .date-picker-modal { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 1em; margin-top: 10px; }
+
+    /* ESTILOS DE LA LISTA DE RECHAZADOS EN MODAL */
+    .reject-list-box {
+      text-align: left; background: #fff5f5; border: 1px solid #fecaca; border-radius: 12px;
+      padding: 10px; margin-top: 10px; overflow-y: auto; max-height: 250px; font-size: 0.8em;
+    }
+    .reject-item { padding: 6px 0; border-bottom: 1px dashed #fca5a5; }
+    .reject-item:last-child { border-bottom: none; }
   </style>
 </head>
 <body>
@@ -262,7 +270,7 @@
       <div id="modalProductMeta" style="font-size: 0.85em; text-align:left; margin:10px 0;">Detalles...</div>
       
       <div class="modal-actions" id="modalActions">
-        <button class="btn-modal btn-cancel" onclick="cerrarModal(false)">CANCELAR</button>
+        <button class="btn-modal btn-cancel" id="btnModalCancel" onclick="cerrarModal(false)">CANCELAR</button>
         <button class="btn-modal btn-confirm" id="btnModalConfirm" onclick="cerrarModal(true)">CONFIRMAR</button>
       </div>
     </div>
@@ -338,7 +346,7 @@
       const file = input.files[0];
       if (!file) return;
 
-      mostrarToast("⌛ Leyendo archivo Excel...");
+      mostrarToast("⌛ Lectura de archivo Excel...");
 
       const reader = new FileReader();
       reader.onload = async function(e) {
@@ -350,11 +358,11 @@
           const jsonFilas = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
           if (jsonFilas.length <= 1) {
-            alert("El archivo Excel no contiene filas de datos válidas.");
+            alert("El archivo Excel no contiene filas válidas.");
             return;
           }
 
-          mostrarToast("🚀 Procesando duplicados y agregando registros...");
+          mostrarToast("🚀 Verificando reglas de negocio...");
 
           const resp = await enviarPeticionAPI({
             accion: "AGREGAR_EXCEL",
@@ -362,9 +370,9 @@
           });
 
           if (resp && resp.resumen) {
-            alert(`✅ Proceso finalizado:\n• Registros Nuevos: ${resp.resumen.agregados}\n• Registros Anulados/Duplicados: ${resp.resumen.anulados}`);
+            mostrarModalRechazados(resp.resumen);
           } else {
-            mostrarToast("✓ EXCEL PROCESADO CORRECTAMENTE");
+            mostrarToast("✓ EXCEL PROCESADO");
           }
 
           setTimeout(() => { cargarDatos(); }, 1000);
@@ -377,6 +385,42 @@
         }
       };
       reader.readAsArrayBuffer(file);
+    }
+
+    function mostrarModalRechazados(resumen) {
+      document.getElementById('modalTag').innerText = "RESUMEN DE PROCESAMIENTO";
+      document.getElementById('modalProductName').innerText = `✅ ${resumen.agregados} Ítems Importados`;
+      
+      let htmlDetalle = `<div style="margin-bottom:8px; font-weight:700; color:#dc2626;">🚫 Ítems Rechazados (${resumen.rechazados.length}):</div>`;
+
+      if (resumen.rechazados.length === 0) {
+        htmlDetalle += `<div style="color:#16a34a; font-weight:700;">No hubo ningún ítem rechazado.</div>`;
+      } else {
+        htmlDetalle += `<div class="reject-list-box">`;
+        resumen.rechazados.forEach(r => {
+          htmlDetalle += `
+            <div class="reject-item">
+              <b>📄 ${r.comprobante}</b> - <i>${r.producto}</i><br>
+              <span style="color:#dc2626; font-weight:700;">Motivo: ${r.motivo}</span>
+            </div>
+          `;
+        });
+        htmlDetalle += `</div>`;
+      }
+
+      document.getElementById('modalProductMeta').innerHTML = htmlDetalle;
+      
+      const btnConfirm = document.getElementById('btnModalConfirm');
+      const btnCancel = document.getElementById('btnModalCancel');
+
+      btnConfirm.innerText = "ENTENDIDO";
+      btnCancel.style.display = "none";
+
+      accionPendiente = () => {
+        btnCancel.style.display = "block";
+      };
+
+      document.getElementById('modalOverlay').classList.add('active');
     }
 
     function normalizarKeyClient(val) {
@@ -761,6 +805,7 @@
         <b>ACCIÓN:</b> ${esPickedActualmente ? 'Marcar como PENDIENTE' : 'Marcar como PICKEADO'}
       `;
 
+      document.getElementById('btnModalCancel').style.display = "block";
       document.getElementById('btnModalConfirm').innerText = esPickedActualmente ? "DESMARCAR" : "CONFIRMAR PICKEADO";
 
       accionPendiente = async () => {
@@ -806,6 +851,7 @@
           document.getElementById('modalProductMeta').innerHTML = `
             <input type="date" id="inputFechaDespachoModal" class="date-picker-modal" value="${new Date().toISOString().split('T')[0]}">
           `;
+          document.getElementById('btnModalCancel').style.display = "block";
           document.getElementById('btnModalConfirm').innerText = "GUARDAR FECHA";
 
           accionPendiente = () => {
