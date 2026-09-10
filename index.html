@@ -201,17 +201,19 @@
       box-sizing: border-box;
     }
 
-    /* REGLAS ESTRICTAS DE IMPRESIÓN Y PAGINACIÓN PDF */
+    /* CONTENEDOR FUERA DE PANTALLA TOTALMENTE VISIBLE EN EL DOM */
     .pdf-export-container {
       position: absolute;
       top: 0;
-      left: 0;
-      width: 800px;
-      background: #ffffff;
+      left: -9999px;
+      width: 780px;
+      background: #ffffff !important;
+      color: #0f172a !important;
       padding: 20px;
       box-sizing: border-box;
-      z-index: -9999;
-      visibility: hidden;
+      z-index: -100;
+      display: block !important;
+      opacity: 1 !important;
     }
 
     .pdf-export-container table {
@@ -1055,7 +1057,7 @@
       accionPendiente = null;
     }
 
-    /* DASHBOARD Y GENERACIÓN PDF (MONTO TOTAL GLOBAL Y REGLAS SALTO DE PÁGINA) */
+    /* DASHBOARD Y GENERACIÓN PDF CORREGIDA */
     function abrirDashboard() {
       const fechaActual = new Date().toLocaleString('es-PE');
       document.getElementById('reporteFechaGen').innerText = `Generado el: ${fechaActual}`;
@@ -1152,7 +1154,6 @@
         tbody.appendChild(tr);
       });
 
-      // Fila de Total General al pie de la Tabla
       const tfoot = document.getElementById('tfootReportePDF');
       tfoot.innerHTML = `
         <tr style="background:#f1f5f9; font-weight:800; border-top:2px solid #0f172a; page-break-inside:avoid; break-inside:avoid;">
@@ -1174,10 +1175,9 @@
     function descargarPDF() {
       mostrarToast("📄 Generando PDF...");
 
-      // Crear un contenedor independiente fuera de modales y scrolls
+      // Crear contenedor completamente legible para html2canvas fuera de pantalla
       const pdfWrapper = document.createElement('div');
       pdfWrapper.className = 'pdf-export-container';
-      pdfWrapper.style.visibility = 'visible';
       
       const fuente = document.getElementById('areaReportePDF');
       pdfWrapper.innerHTML = fuente.innerHTML;
@@ -1193,21 +1193,23 @@
           useCORS: true, 
           logging: false,
           scrollY: 0,
-          scrollX: 0,
-          windowWidth: 1024
+          scrollX: 0
         },
         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
         pagebreak:    { mode: ['css', 'legacy'] }
       };
 
-      html2pdf().set(opciones).from(pdfWrapper).save().then(() => {
-        document.body.removeChild(pdfWrapper);
-        mostrarToast("✓ PDF DESCARGADO");
-      }).catch(err => {
-        if (document.body.contains(pdfWrapper)) document.body.removeChild(pdfWrapper);
-        console.error(err);
-        alert("Error al generar PDF: " + err.message);
-      });
+      // Pequeño retardo asíncrono para asegurar que las imágenes/estilos del DOM estén cargados
+      setTimeout(() => {
+        html2pdf().set(opciones).from(pdfWrapper).save().then(() => {
+          document.body.removeChild(pdfWrapper);
+          mostrarToast("✓ PDF DESCARGADO");
+        }).catch(err => {
+          if (document.body.contains(pdfWrapper)) document.body.removeChild(pdfWrapper);
+          console.error(err);
+          alert("Error al generar PDF: " + err.message);
+        });
+      }, 100);
     }
 
     function mostrarToast(mensaje) {
