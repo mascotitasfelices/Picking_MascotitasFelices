@@ -438,15 +438,14 @@
 
           const keyComp = normalizarKeyComp(item.comprobante);
           if (!estadoEtiquetasComprobantes[keyComp]) {
-            const tagsArray = item.etiquetas ? item.etiquetas.split(",") : [];
             estadoEtiquetasComprobantes[keyComp] = {
-              proximoDespacho: tagsArray.includes("proximoDespacho"),
+              proximoDespacho: !!item.proximoDespacho,
               fechaDespacho: item.fechaDespacho || "",
-              acumular: tagsArray.includes("acumular"),
-              delivery: tagsArray.includes("delivery"),
-              recojoLocal: tagsArray.includes("recojoLocal"),
-              despachado: tagsArray.includes("despachado"),
-              anulada: tagsArray.includes("anulada")
+              acumular: !!item.acumular,
+              delivery: !!item.delivery,
+              recojoLocal: !!item.recojoLocal,
+              despachado: !!item.despachado,
+              anulada: !!item.anulada
             };
           }
         });
@@ -830,25 +829,13 @@
     async function guardarEstadoEtiquetas(keyComp) {
       const state = estadoEtiquetasComprobantes[keyComp];
       
-      const tagsArray = [];
-      if (state.proximoDespacho) tagsArray.push("proximoDespacho");
-      if (state.acumular) tagsArray.push("acumular");
-      if (state.delivery) tagsArray.push("delivery");
-      if (state.recojoLocal) tagsArray.push("recojoLocal");
-      if (state.despachado) tagsArray.push("despachado");
-      if (state.anulada) tagsArray.push("anulada");
-
-      const etiquetasString = tagsArray.join(",");
-      const fechaDespachoString = state.fechaDespacho || "";
-
       aplicarFiltros();
 
       mostrarToast("💾 Guardando...");
       await enviarPeticionAPI({
         accion: "ACTUALIZAR_ETIQUETAS_COMPROBANTE",
         comprobanteKey: keyComp,
-        etiquetas: etiquetasString,
-        fechaDespacho: fechaDespachoString
+        estadoEtiquetas: state
       });
       mostrarToast("✓ ETIQUETAS GUARDADAS");
     }
