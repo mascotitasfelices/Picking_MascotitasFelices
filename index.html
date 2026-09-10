@@ -179,9 +179,9 @@
     .reject-item { padding: 6px 0; border-bottom: 1px dashed #fca5a5; }
     .reject-item:last-child { border-bottom: none; }
 
-    /* DASHBOARD Y FORMATO PDF OPTIMIZADO CENTRADO Y SIN HOJAS EN BLANCO */
+    /* DASHBOARD Y FORMATO PDF OPTIMIZADO */
     .dashboard-modal-card {
-      background: #ffffff; border-radius: 20px; padding: 20px; width: 95%; max-width: 700px;
+      background: #ffffff; border-radius: 20px; padding: 20px; width: 95%; max-width: 750px;
       max-height: 90vh; overflow-y: auto; text-align: left;
     }
     .dashboard-grid {
@@ -189,27 +189,31 @@
     }
     .dash-card {
       background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; text-align: center;
+      page-break-inside: avoid !important; break-inside: avoid !important;
     }
-    .dash-card-num { font-size: 1.5em; font-weight: 800; color: #0f172a; }
+    .dash-card-num { font-size: 1.35em; font-weight: 800; color: #0f172a; }
     .dash-card-lbl { font-size: 0.72em; font-weight: 700; color: #64748b; margin-top: 2px; }
 
     .pdf-print-area {
-      padding: 20px;
+      padding: 15px;
       background: white;
       width: 100%;
       margin: 0 auto;
       box-sizing: border-box;
     }
 
-    /* ESTILOS DE TABLA DE CLIENTES EN DASHBOARD */
-    .tbl-client-header {
-      background: #0f172a; color: white; font-weight: bold; font-size: 0.8em; padding: 6px 8px; border-radius: 4px; margin-top: 10px;
-    }
+    /* REGLAS ANTI-CORTE DE PÁGINAS PDF */
     .tbl-client-row {
       border-bottom: 1px solid #e2e8f0; font-size: 0.75em; padding: 6px 8px;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
     }
 
-    /* FORMATO IMPRESIÓN PDF PERFECTO */
+    tr {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+
     @media print {
       .pdf-print-area {
         width: 100% !important;
@@ -218,6 +222,7 @@
       }
       tr, .dash-card, .tbl-client-row {
         page-break-inside: avoid !important;
+        break-inside: avoid !important;
       }
     }
   </style>
@@ -322,7 +327,7 @@
     </div>
   </div>
 
-  <!-- MODAL DASHBOARD REPORT (SOLO NIVEL CLIENTE) -->
+  <!-- MODAL DASHBOARD REPORT -->
   <div class="modal-overlay" id="modalDashboardOverlay">
     <div class="dashboard-modal-card">
       <div class="pdf-print-area" id="areaReportePDF">
@@ -346,6 +351,10 @@
           <div class="dash-card">
             <div class="dash-card-num" id="dashTotalItems">0</div>
             <div class="dash-card-lbl">📦 Total Ítems</div>
+          </div>
+          <div class="dash-card" style="border:1.5px solid #16a34a; background:#f0fdf4;">
+            <div class="dash-card-num" style="color:#16a34a;" id="dashMontoTotalSum">S/ 0.00</div>
+            <div class="dash-card-lbl" style="color:#15803d; font-weight:800;">💰 Monto Total Suma</div>
           </div>
           <div class="dash-card">
             <div class="dash-card-num" style="color:#d97706;" id="dashTotalAcumular">0</div>
@@ -386,6 +395,9 @@
           <tbody id="tbodyReportePDF">
             <!-- Rellenado dinámico por Cliente -->
           </tbody>
+          <tfoot id="tfootReportePDF">
+            <!-- Fila de Total General -->
+          </tfoot>
         </table>
       </div>
 
@@ -445,6 +457,16 @@
       }
     }
 
+    function formatearDocCliente(val) {
+      if (val === undefined || val === null) return "S/D";
+      let str = String(val).trim();
+      if (str.startsWith("'")) str = str.substring(1);
+      if (str.length > 0 && str.length < 8 && !isNaN(str)) {
+        str = str.padStart(8, '0');
+      }
+      return str || "S/D";
+    }
+
     async function enviarPeticionAPI(payloadObj) {
       try {
         const response = await fetch(URL_API, {
@@ -472,10 +494,10 @@
       reader.onload = async function(e) {
         try {
           const data = new Uint8Array(e.target.result);
-          const workbook = XLSX.read(data, { type: 'array' });
+          const workbook = XLSX.read(data, { type: 'array', raw: false });
           const firstSheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[firstSheetName];
-          const jsonFilas = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+          const jsonFilas = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: false });
 
           if (jsonFilas.length <= 1) {
             alert("El archivo Excel no contiene filas válidas.");
@@ -628,7 +650,8 @@
       let completados = 0;
 
       itemsFiltrados.forEach(i => {
-        const keyCli = normalizarKeyClient(i.cliente || i.docCliente);
+        const docFormateado = formatearDocCliente(i.docCliente);
+        const keyCli = normalizarKeyClient(i.cliente || docFormateado);
         setClientes.add(keyCli);
         if (Number(i.cantPickeada) >= Number(i.cantSolicitada)) completados++;
       });
@@ -653,6 +676,7 @@
         const keyComp = normalizarKeyComp(item.comprobante);
         const state = estadoEtiquetasComprobantes[keyComp] || {};
         const fechaItem = normalizarFechaISO(item.fecha);
+        const docFormatted = formatearDocCliente(item.docCliente);
 
         if (autoFiltrarUltimoDia) {
           const esUltimoDia = (fechaItem === ultimaFechaGeneral);
@@ -662,7 +686,7 @@
 
         const coincideTexto = !texto || 
           (item.cliente && item.cliente.toLowerCase().includes(texto)) ||
-          (item.docCliente && String(item.docCliente).includes(texto)) ||
+          (docFormatted && docFormatted.includes(texto)) ||
           (item.producto && item.producto.toLowerCase().includes(texto)) ||
           (item.codigo && String(item.codigo).toLowerCase().includes(texto)) ||
           (item.comprobante && String(item.comprobante).toLowerCase().includes(texto));
@@ -705,13 +729,14 @@
       const mapaClientes = {};
 
       data.forEach(item => {
-        const keyClient = normalizarKeyClient(item.cliente || item.docCliente);
+        const docFormatted = formatearDocCliente(item.docCliente);
+        const keyClient = normalizarKeyClient(item.cliente || docFormatted);
         const keyComp = normalizarKeyComp(item.comprobante);
 
         if (!mapaClientes[keyClient]) {
           mapaClientes[keyClient] = {
             keyClient: keyClient,
-            docCliente: item.docCliente || 'S/D',
+            docCliente: docFormatted,
             cliente: item.cliente || 'CLIENTE GENERAL',
             comprobantesMap: {}
           };
@@ -875,7 +900,7 @@
               <div style="flex:1;">
                 <div class="client-header-title">
                   <span class="client-name">${cli.cliente}</span>
-                  <span style="font-size:0.75em; color:var(--text-muted);">(${cli.docCliente})</span>
+                  <span style="font-size:0.75em; color:var(--text-muted); font-weight:700;">(Doc: ${cli.docCliente})</span>
                 </div>
                 <div class="client-meta">COMPROBANTES: ${cli.comprobantes.length} | PROGRESO: ${cli.completados}/${cli.totalItems} ÍTEMS</div>
               </div>
@@ -1018,7 +1043,7 @@
       accionPendiente = null;
     }
 
-    /* DASHBOARD Y GENERACIÓN PDF (SOLO NIVEL CLIENTE) */
+    /* DASHBOARD Y GENERACIÓN PDF (MONTO TOTAL GLOBAL Y REGLAS SALTO DE PÁGINA) */
     function abrirDashboard() {
       const fechaActual = new Date().toLocaleString('es-PE');
       document.getElementById('reporteFechaGen').innerText = `Generado el: ${fechaActual}`;
@@ -1026,15 +1051,17 @@
       const clientesMap = {};
       let totalItemsGlobal = itemsFiltradosGlobal.length;
       let cntComprobantesGlobal = 0;
+      let sumaMontoGlobal = 0;
 
       itemsFiltradosGlobal.forEach(item => {
-        const keyClient = normalizarKeyClient(item.cliente || item.docCliente);
+        const docFormatted = formatearDocCliente(item.docCliente);
+        const keyClient = normalizarKeyClient(item.cliente || docFormatted);
         const keyComp = normalizarKeyComp(item.comprobante);
 
         if (!clientesMap[keyClient]) {
           clientesMap[keyClient] = {
             cliente: item.cliente || 'CLIENTE GENERAL',
-            docCliente: item.docCliente || 'S/D',
+            docCliente: docFormatted,
             comprobantesSet: new Set(),
             itemsCount: 0,
             montoTotal: 0,
@@ -1042,8 +1069,10 @@
           };
         }
 
+        const importeNum = Number(item.importe || 0);
         clientesMap[keyClient].itemsCount++;
-        clientesMap[keyClient].montoTotal += Number(item.importe || 0);
+        clientesMap[keyClient].montoTotal += importeNum;
+        sumaMontoGlobal += importeNum;
 
         if (!clientesMap[keyClient].comprobantesSet.has(keyComp)) {
           clientesMap[keyClient].comprobantesSet.add(keyComp);
@@ -1082,6 +1111,8 @@
       document.getElementById('dashTotalClientes').innerText = listaClientesResumen.length;
       document.getElementById('dashTotalComprobantes').innerText = cntComprobantesGlobal;
       document.getElementById('dashTotalItems').innerText = totalItemsGlobal;
+      document.getElementById('dashMontoTotalSum').innerText = `S/ ${sumaMontoGlobal.toFixed(2)}`;
+      
       document.getElementById('dashTotalAcumular').innerText = cntAcumularCli;
       document.getElementById('dashTotalDelivery').innerText = cntDeliveryCli;
       document.getElementById('dashTotalRecojo').innerText = cntRecojoCli;
@@ -1094,6 +1125,8 @@
       listaClientesResumen.forEach(c => {
         const tr = document.createElement('tr');
         tr.className = 'tbl-client-row';
+        tr.style.pageBreakInside = 'avoid';
+        tr.style.breakInside = 'avoid';
         tr.innerHTML = `
           <td style="padding:6px; font-weight:700;">
             ${c.cliente}<br>
@@ -1106,6 +1139,18 @@
         `;
         tbody.appendChild(tr);
       });
+
+      // Fila de Total General al pie de la Tabla
+      const tfoot = document.getElementById('tfootReportePDF');
+      tfoot.innerHTML = `
+        <tr style="background:#f1f5f9; font-weight:800; border-top:2px solid #0f172a; page-break-inside:avoid; break-inside:avoid;">
+          <td style="padding:8px;">TOTAL GENERAL (${listaClientesResumen.length} CLIENTES)</td>
+          <td style="padding:8px; text-align:center;">${cntComprobantesGlobal}</td>
+          <td style="padding:8px; text-align:center;">${totalItemsGlobal}</td>
+          <td style="padding:8px; text-align:right; color:#15803d; font-size:1.1em;">S/ ${sumaMontoGlobal.toFixed(2)}</td>
+          <td style="padding:8px;">—</td>
+        </tr>
+      `;
 
       document.getElementById('modalDashboardOverlay').classList.add('active');
     }
